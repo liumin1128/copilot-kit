@@ -11,7 +11,7 @@ import {
 } from "./quickPromptsProvider";
 
 export function activate(context: vscode.ExtensionContext) {
-  // 注册 Webview View Provider
+  // Register Webview View Provider
   const provider = new QuickPromptsProvider(context.extensionUri);
   context.subscriptions.push(
     vscode.window.registerWebviewViewProvider(
@@ -23,7 +23,7 @@ export function activate(context: vscode.ExtensionContext) {
     ),
   );
 
-  // 注册发送提示词的命令
+  // Register send prompt command
   const sendPromptCommand = vscode.commands.registerCommand(
     "copilotQuickPrompts.sendPrompt",
     async (promptText: string, mode: "direct" | "write" = "write") => {
@@ -32,7 +32,7 @@ export function activate(context: vscode.ExtensionContext) {
   );
   context.subscriptions.push(sendPromptCommand);
 
-  // 注册智能聊天操作命令（无聊天标签→创建，有聊天标签→拆分）
+  // Register smart chat command (no tab → create, has tab → split)
   const smartChatCommand = vscode.commands.registerCommand(
     "copilotQuickPrompts.smartChatAction",
     async () => {
@@ -41,7 +41,7 @@ export function activate(context: vscode.ExtensionContext) {
   );
   context.subscriptions.push(smartChatCommand);
 
-  // 注册关闭所有标签页命令
+  // Register close all tabs command
   const closeAllCommand = vscode.commands.registerCommand(
     "copilotQuickPrompts.closeAll",
     async () => {
@@ -50,13 +50,13 @@ export function activate(context: vscode.ExtensionContext) {
   );
   context.subscriptions.push(closeAllCommand);
 
-  // 初始化状态栏
+  // Initialize status bar
   const statusBarDisposables: vscode.Disposable[] = [];
   const rebuildStatusBar = () =>
     createStatusBarItems(context, statusBarDisposables);
   rebuildStatusBar();
 
-  // 监听配置变更自动刷新状态栏
+  // Listen for config changes to auto-refresh status bar
   context.subscriptions.push(
     vscode.workspace.onDidChangeConfiguration((e) => {
       if (
@@ -68,7 +68,7 @@ export function activate(context: vscode.ExtensionContext) {
     }),
   );
 
-  // 监听提示词数据变更（侧边栏编辑 icon、label 等），自动刷新状态栏
+  // Listen for prompt data changes (sidebar edit icon, label, etc.), auto-refresh status bar
   context.subscriptions.push(
     provider.onDidChangePrompts(() => {
       rebuildStatusBar();
@@ -76,12 +76,12 @@ export function activate(context: vscode.ExtensionContext) {
   );
 }
 
-/** 创建状态栏快捷按钮 */
+/** Create status bar quick buttons */
 function createStatusBarItems(
   context: vscode.ExtensionContext,
   disposables: vscode.Disposable[],
 ): void {
-  // 先释放旧的按钮
+  // Dispose old buttons first
   for (const d of disposables) {
     d.dispose();
   }
@@ -90,7 +90,7 @@ function createStatusBarItems(
   const prompts = loadPrompts();
   const { alignment, basePriority } = getPositionConfig();
 
-  // 统一遍历所有项（内置项 + 自定义项），跳过隐藏项
+  // Iterate all items (built-in + custom), skip hidden items
   for (const item of prompts) {
     if (item.hidden) continue;
     const statusBar = createPromptButton(item, alignment, basePriority);
@@ -98,7 +98,7 @@ function createStatusBarItems(
   }
 }
 
-/** 内置项 → 命令 ID 映射 */
+/** Built-in item → command ID mapping */
 function getBuiltInCommand(item: PromptItem): string | undefined {
   if (item.id === "builtin:smartChat")
     return "copilotQuickPrompts.smartChatAction";
@@ -106,7 +106,7 @@ function getBuiltInCommand(item: PromptItem): string | undefined {
   return undefined;
 }
 
-/** 创建单个提示词状态栏按钮 */
+/** Create a single prompt status bar button */
 function createPromptButton(
   item: PromptItem,
   alignment: vscode.StatusBarAlignment,
@@ -124,14 +124,14 @@ function createPromptButton(
   }
 
   if (item.builtIn) {
-    // 内置项：直接绑定命令
+    // Built-in: bind command directly
     const cmd = getBuiltInCommand(item);
     statusBar.tooltip = item.label;
     if (cmd) {
       statusBar.command = cmd;
     }
   } else {
-    // 自定义项：发送提示词
+    // Custom: send prompt
     const modeLabel =
       item.mode === "direct"
         ? "$(play) Direct Execute"
@@ -149,7 +149,7 @@ function createPromptButton(
   return statusBar;
 }
 
-/** 从 VS Code 配置加载提示词列表，保持存储中的顺序 */
+/** Load prompt list from VS Code config, preserving storage order */
 function loadPrompts(): PromptItem[] {
   const saved = vscode.workspace
     .getConfiguration()
@@ -158,7 +158,7 @@ function loadPrompts(): PromptItem[] {
     .filter((p) => !DEFAULT_PROMPT_IDS.has(p.id))
     .map((p) => ({ ...p, displayMode: p.displayMode || "icon" }));
 
-  // 确保内置项存在于列表中（首次加载时补充）
+  // Ensure built-in items exist in list (supplement on first load)
   const existingIds = new Set(allItems.map((p) => p.id));
   for (const builtIn of BUILT_IN_PROMPTS) {
     if (!existingIds.has(builtIn.id)) {
@@ -170,8 +170,8 @@ function loadPrompts(): PromptItem[] {
 }
 
 /**
- * 将提示词发送到 Copilot 聊天
- * @param mode 'direct' - 直接执行（自动发送）| 'write' - 写入输入框（等待确认）
+ * Send prompt to Copilot Chat
+ * @param mode 'direct' - execute directly (auto-send) | 'write' - write to input (wait for confirmation)
  */
 async function sendToCopilotChat(
   promptText: string,
@@ -195,12 +195,12 @@ async function sendToCopilotChat(
   }
 }
 
-/** 检测是否存在任何编辑器标签页 */
+/** Check if any editor tabs exist */
 function hasAnyTab(): boolean {
   return vscode.window.tabGroups.all.some((group) => group.tabs.length > 0);
 }
 
-/** 智能聊天操作：无标签页→创建聊天编辑器标签页，有标签页→向右拆分 */
+/** Smart chat action: no tab → create chat editor tab, has tab → split right */
 async function smartChatAction(): Promise<void> {
   if (hasAnyTab()) {
     await vscode.commands.executeCommand("workbench.action.splitEditorRight");
@@ -209,7 +209,7 @@ async function smartChatAction(): Promise<void> {
   }
 }
 
-/** 关闭所有标签页和 Copilot 侧边栏 */
+/** Close all tabs and Copilot sidebar */
 async function closeAllTabs(): Promise<void> {
   await vscode.commands.executeCommand("workbench.action.closeAllEditors");
   await vscode.commands.executeCommand("workbench.action.closeAuxiliaryBar");

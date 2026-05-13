@@ -1,80 +1,80 @@
 # Copilot Quick Prompts 🚀
 
-为 VS Code Copilot Chat 提供一键快捷提示词按钮，避免重复输入常用提示词。
+One-click quick prompt buttons for VS Code Copilot Chat — eliminate repetitive typing of common prompts.
 
-## 功能概述
+## Overview
 
-在 **状态栏** 和 **侧边栏面板** 中提供可自定义的快捷提示词按钮，支持以下核心能力：
+Provides customizable quick prompt buttons in the **status bar** and **sidebar panel** with the following core capabilities:
 
-### 🔘 双入口操作
+### 🔘 Dual Entry Points
 
-- **状态栏按钮**：一键触发提示词，始终可见
-- **侧边栏面板**：完整的提示词管理界面，支持增删改查
+- **Status Bar Buttons**: One-click prompt trigger, always visible
+- **Sidebar Panel**: Full prompt management interface with CRUD operations
 
-### 🎯 两种执行模式
+### 🎯 Two Execution Modes
 
-| 模式 | 说明 |
-|------|------|
-| **Write to Input** | 将提示词写入 Copilot Chat 输入框，确认后发送 |
-| **Direct Execute** | 直接执行提示词，自动发送到 Copilot Chat |
+| Mode | Description |
+|------|-------------|
+| **Write to Input** | Writes the prompt to Copilot Chat input box, send after confirmation |
+| **Direct Execute** | Executes the prompt directly, auto-sends to Copilot Chat |
 
-### 🖱 交互方式
+### 🖱 Interaction
 
-| 操作 | 行为 |
-|------|------|
-| 左键点击 | 按配置模式发送提示词 |
-| 右键点击 | 附带当前编辑器中选中的代码一起发送 |
-| 内置按钮点击 | 直接触发对应命令 |
+| Action | Behavior |
+|--------|----------|
+| Left click | Sends prompt according to configured mode |
+| Right click | Sends prompt with currently selected code in editor |
+| Built-in button click | Triggers corresponding command directly |
 
-### 📦 内置快捷按钮
+### 📦 Built-in Shortcuts
 
-| 按钮 | 功能 |
-|------|------|
-| 💬 **New Chat Tab** | 智能聊天：无标签页时创建聊天编辑器，有标签页时向右拆分 |
-| ❌ **Close All Tabs** | 关闭所有编辑器标签页和 Copilot 侧边栏 |
+| Button | Function |
+|--------|----------|
+| 💬 **New Chat Tab** | Smart chat: creates chat editor if no tab exists, splits right if a tab exists |
+| ❌ **Close All Tabs** | Closes all editor tabs and Copilot sidebar |
 
-### ⚙️ 自定义提示词
+### ⚙️ Custom Prompts
 
-通过侧边栏面板可直接管理提示词列表：
+Manage your prompt list directly via the sidebar panel:
 
-- **新增**：点击底部 `+ Add Shortcut` 按钮
-- **编辑**：点击提示词右侧编辑图标，可修改标签、图标、显示模式、提示内容、执行模式
-- **删除**：编辑弹窗中点击 Delete 按钮，二次确认后删除
-- **排序**：通过上下箭头调整提示词顺序
-- **显示/隐藏**：通过眼睛图标控制是否在状态栏显示
+- **Add**: Click the `+ Add Shortcut` button at the bottom
+- **Edit**: Click the edit icon next to a prompt to modify label, icon, display mode, prompt content, and execution mode
+- **Delete**: Click the Delete button in the edit modal, confirmed twice before deletion
+- **Reorder**: Adjust prompt order using up/down arrows
+- **Show/Hide**: Control visibility in the status bar via the eye icon
 
-每个自定义提示词支持以下属性：
+Each custom prompt supports the following properties:
 
-| 属性 | 说明 |
-|------|------|
-| `label` | 按钮显示标签 |
-| `icon` | 按钮图标（支持 VS Code Codicon 图标库，带搜索过滤） |
-| `prompt` | 发送给 Copilot 的提示内容 |
-| `displayMode` | 显示模式：`icon`（仅图标）、`text`（仅文本）、`both`（图标+文本） |
-| `mode` | 执行模式：`write`（写入输入框）、`direct`（直接执行） |
+| Property | Description |
+|----------|-------------|
+| `label` | Button display label |
+| `icon` | Button icon (supports VS Code Codicon library with search filtering) |
+| `prompt` | Prompt content sent to Copilot |
+| `displayMode` | Display mode: `icon` (icon only), `text` (text only), `both` (icon + text) |
+| `mode` | Execution mode: `write` (write to input), `direct` (execute directly) |
 
-### 📊 状态栏按钮显示模式
+### 📊 Status Bar Display Modes
 
-支持三种显示模式，可在编辑弹窗中为每个按钮独立设置：
+Three display modes are supported, configurable per button in the edit modal:
 
-- **Icon Only** — 仅显示图标，简洁紧凑
-- **Text Only** — 仅显示文本标签
-- **Icon + Text** — 同时显示图标和标签
+- **Icon Only** — Displays only the icon, compact and clean
+- **Text Only** — Displays only the text label
+- **Icon + Text** — Displays both icon and label
 
-### 📐 状态栏位置配置
+### 📐 Status Bar Position
 
-通过 VS Code 设置 `copilotQuickPrompts.statusBarPosition` 可调整按钮在状态栏中的位置：
+Adjust the position of buttons in the status bar via the VS Code setting `copilotQuickPrompts.statusBarPosition`:
 
-| 配置值 | 对齐方式 | 优先级 |
-|--------|----------|--------|
-| `leftLeft` | 左侧 | 高优先级（靠左边缘） |
-| `leftRight` | 左侧 | 低优先级（靠左中） |
-| `rightLeft` | 右侧 | 低优先级（靠右中） |
-| `rightRight` | 右侧 | 高优先级（靠右边缘） |
+| Value | Alignment | Priority |
+|-------|-----------|----------|
+| `leftLeft` | Left side | High priority (near left edge) |
+| `leftRight` | Left side | Low priority (near center-left) |
+| `rightLeft` | Right side | Low priority (near center-right) |
+| `rightRight` | Right side | High priority (near right edge) |
 
-## 安装
+## Installation
 
-### 从源码安装
+### From Source
 
 ```bash
 git clone <repo-url>
@@ -83,21 +83,21 @@ npm install
 npm run compile
 ```
 
-然后在 VS Code 中运行 `Extensions: Install from VSIX...` 或复制到扩展目录。
+Then run `Extensions: Install from VSIX...` in VS Code or copy to the extensions directory.
 
-### 开发模式
+### Development Mode
 
 ```bash
-npm run watch    # 监听 TypeScript 变更自动编译
+npm run watch    # Watch TypeScript changes and auto-compile
 ```
 
-按 `F5` 启动 Extension Development Host 进行调试。
+Press `F5` to launch the Extension Development Host for debugging.
 
-## 配置
+## Configuration
 
-### VS Code 设置
+### VS Code Settings
 
-打开 VS Code 设置（`Cmd+,`），搜索 `Copilot Quick Prompts`，或直接编辑 `settings.json`：
+Open VS Code settings (`Cmd+,`), search for `Copilot Quick Prompts`, or directly edit `settings.json`:
 
 ```json
 {
@@ -116,36 +116,36 @@ npm run watch    # 监听 TypeScript 变更自动编译
 }
 ```
 
-## 技术栈
+## Tech Stack
 
-- **语言**：TypeScript
-- **平台**：VS Code Extension API (v1.93+)
-- **构建**：TypeScript Compiler (tsc)
-- **UI 框架**：原生 Webview + VS Code Codicon 图标库
-- **无第三方依赖**：纯 VS Code API 实现
+- **Language**: TypeScript
+- **Platform**: VS Code Extension API (v1.93+)
+- **Build**: TypeScript Compiler (tsc)
+- **UI Framework**: Native Webview + VS Code Codicon library
+- **Zero Third-party Dependencies**: Purely VS Code API implementation
 
-## 命令
+## Commands
 
-| 命令 | 说明 |
-|------|------|
-| `copilotQuickPrompts.sendPrompt` | 发送提示词到 Copilot Chat |
-| `copilotQuickPrompts.smartChatAction` | 智能聊天操作 |
-| `copilotQuickPrompts.closeAll` | 关闭所有标签页和侧边栏 |
+| Command | Description |
+|---------|-------------|
+| `copilotQuickPrompts.sendPrompt` | Send prompt to Copilot Chat |
+| `copilotQuickPrompts.smartChatAction` | Smart chat operation |
+| `copilotQuickPrompts.closeAll` | Close all tabs and sidebar |
 
-## 项目结构
+## Project Structure
 
 ```
 copilot-quick-prompts/
-├── package.json              # 扩展清单和配置
-├── tsconfig.json             # TypeScript 配置
+├── package.json              # Extension manifest and configuration
+├── tsconfig.json             # TypeScript configuration
 ├── src/
-│   ├── extension.ts          # 扩展入口：状态栏、命令注册
-│   └── quickPromptsProvider.ts # Webview Provider + 提示词管理逻辑
-├── media/                    # 静态资源（预留）
-├── learnings/                # 开发学习记录
-└── skills-lock.json          # 技能锁定文件
+│   ├── extension.ts          # Extension entry: status bar, command registration
+│   └── quickPromptsProvider.ts # Webview Provider + prompt management logic
+├── media/                    # Static assets (reserved)
+├── learnings/                # Development learning notes
+└── skills-lock.json          # Skills lock file
 ```
 
-## 许可
+## License
 
 MIT
