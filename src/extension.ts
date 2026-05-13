@@ -5,6 +5,7 @@ import {
   STORAGE_KEY,
   DEFAULT_PROMPTS,
   DEFAULT_PROMPT_IDS,
+  BUILT_IN_PROMPTS,
   CONFIG_KEY,
   StatusBarPosition,
   getPositionConfig,
@@ -90,32 +91,19 @@ function createStatusBarItems(
   const prompts = loadPrompts(context.globalState);
   const { alignment, basePriority } = getPositionConfig();
 
-  // 特殊按钮（放在自定义按钮左侧）
-  const chatBtn = vscode.window.createStatusBarItem(alignment, basePriority);
-  chatBtn.name = "智能聊天";
-  chatBtn.text = "$(comment-discussion)";
-  chatBtn.tooltip = "创建聊天标签页 / 向右拆分编辑器";
-  chatBtn.command = "copilotQuickPrompts.smartChatAction";
-  chatBtn.show();
-  disposables.push(chatBtn);
-
-  const closeAllBtn = vscode.window.createStatusBarItem(
-    alignment,
-    basePriority,
-  );
-  closeAllBtn.name = "关闭所有";
-  closeAllBtn.text = "$(close-all)";
-  closeAllBtn.tooltip = "关闭所有标签页和 Copilot 侧边栏";
-  closeAllBtn.command = "copilotQuickPrompts.closeAll";
-  closeAllBtn.show();
-  disposables.push(closeAllBtn);
-
-  // 自定义按钮（排除隐藏项）
+  // 统一遍历所有项（内置项 + 自定义项），跳过隐藏项
   for (const item of prompts) {
     if (item.hidden) continue;
     const statusBar = createPromptButton(item, alignment, basePriority);
     disposables.push(statusBar);
   }
+}
+
+/** 内置项 → 命令 ID 映射 */
+function getBuiltInCommand(item: PromptItem): string | undefined {
+  if (item.id === "builtin:smartChat") return "copilotQuickPrompts.smartChatAction";
+  if (item.id === "builtin:closeAll") return "copilotQuickPrompts.closeAll";
+  return undefined;
 }
 
 /** 创建单个提示词状态栏按钮 */
@@ -135,34 +123,54 @@ function createPromptButton(
     statusBar.text = `$(${item.icon})`;
   }
 
-  const modeLabel =
-    item.mode === "direct" ? "$(play) 直接执行" : "$(edit) 写入输入框";
-  statusBar.tooltip = new vscode.MarkdownString(
-    `**${item.label}**  \n$(triangle-right) ${modeLabel}  \n$(triangle-right) 点击触发`,
-  );
-  statusBar.command = {
-    command: "copilotQuickPrompts.sendPrompt",
-    title: "发送提示词",
-    arguments: [item.prompt, item.mode],
-  };
+  if (item.builtIn) {
+    // 内置项：直接绑定命令
+    const cmd = getBuiltInCommand(item);
+    statusBar.tooltip = item.label;
+    if (cmd) {
+      statusBar.command = cmd;
+    }
+  } else {
+    // 自定义项：发送提示词
+    const modeLabel =
+      item.mode === "direct" ? "$(play) 直接执行" : "$(edit) 写入输入框";
+    statusBar.tooltip = new vscode.MarkdownString(
+      `**${item.label}**  \n$(triangle-right) ${modeLabel}  \n$(triangle-right) 点击触发`,
+    );
+    statusBar.command = {
+      command: "copilotQuickPrompts.sendPrompt",
+      title: "发送提示词",
+      arguments: [item.prompt, item.mode],
+    };
+  }
   statusBar.show();
   return statusBar;
 }
 
-/** 从全局存储加载提示词列表 */
+/** 从全局存储加载提示词列表，保持存储中的顺序 */
 function loadPrompts(storage: vscode.Memento): PromptItem[] {
   const saved = storage.get<string>(STORAGE_KEY);
+  let allItems: PromptItem[] = [];
   if (saved) {
     try {
       const parsed = JSON.parse(saved) as PromptItem[];
-      return parsed
+      allItems = parsed
         .filter((p) => !DEFAULT_PROMPT_IDS.has(p.id))
         .map((p) => ({ ...p, displayMode: p.displayMode || "icon" }));
     } catch {
       // ignore
     }
   }
-  return DEFAULT_PROMPTS.slice();
+
+  // 确保内置项存在于列表中（首次加载时补充）
+  const existingIds = new Set(allItems.map((p) => p.id));
+  for (const builtIn of BUILT_IN_PROMPTS) {
+    if (!existingIds.has(builtIn.id)) {
+      allItems.push({ ...builtIn });
+    }
+  }
+
+  return allItems;
 }
 
 /**

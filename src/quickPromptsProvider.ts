@@ -375,6 +375,8 @@ export class QuickPromptsProvider implements vscode.WebviewViewProvider {
     }
     .prompt-card:hover .action-btn { display: flex; }
     .action-btn:hover { background: var(--hover); color: var(--fg); }
+    .action-btn:disabled { opacity: 0.3; cursor: default; }
+    .action-btn:disabled:hover { background: transparent; color: var(--desc); }
 
     /* 上移/下移按钮 */
     .move-btn {
@@ -767,9 +769,9 @@ export class QuickPromptsProvider implements vscode.WebviewViewProvider {
             <button class="action-btn eye-btn" data-id="\${p.id}" title="\${p.hidden ? '显示' : '隐藏'}">
               <span class="codicon codicon-\${p.hidden ? 'eye-closed' : 'eye'}"></span>
             </button>
-            \${p.builtIn ? '' : \`<button class="action-btn edit-btn" data-id="\${p.id}" title="编辑">
+            <button class="action-btn edit-btn" data-id="\${p.id}" title="\${p.builtIn ? '内置项不可编辑' : '编辑'}"\${p.builtIn ? ' disabled' : ''}>
               <span class="codicon codicon-edit"></span>
-            </button>\`}
+            </button>
           </div>
         \`).join('');
 
