@@ -102,6 +102,24 @@ function createStatusBarItems(
   label.show();
   disposables.push(label);
 
+  // 特殊按钮（放在自定义按钮左侧）
+  const chatBtn = vscode.window.createStatusBarItem(alignment, btnPri);
+  chatBtn.name = "智能聊天";
+  chatBtn.text = "$(comment-discussion)";
+  chatBtn.tooltip = "创建聊天标签页 / 向右拆分编辑器";
+  chatBtn.command = "copilotQuickPrompts.smartChatAction";
+  chatBtn.show();
+  disposables.push(chatBtn);
+
+  const closeAllBtn = vscode.window.createStatusBarItem(alignment, btnPri);
+  closeAllBtn.name = "关闭所有";
+  closeAllBtn.text = "$(close-all)";
+  closeAllBtn.tooltip = "关闭所有标签页和 Copilot 侧边栏";
+  closeAllBtn.command = "copilotQuickPrompts.closeAll";
+  closeAllBtn.show();
+  disposables.push(closeAllBtn);
+
+  // 自定义按钮
   prompts.forEach((item) => {
     const statusBar = vscode.window.createStatusBarItem(alignment, btnPri);
     statusBar.name = `快捷提示: ${item.label}`;
@@ -123,24 +141,6 @@ function createStatusBarItems(
     statusBar.show();
     disposables.push(statusBar);
   });
-
-  // 智能聊天按钮（无聊天标签→创建，有→拆分）
-  const chatBtn = vscode.window.createStatusBarItem(alignment, btnPri);
-  chatBtn.name = "智能聊天";
-  chatBtn.text = "$(comment-discussion)";
-  chatBtn.tooltip = "创建聊天标签页 / 向右拆分编辑器";
-  chatBtn.command = "copilotQuickPrompts.smartChatAction";
-  chatBtn.show();
-  disposables.push(chatBtn);
-
-  // 关闭所有标签页按钮
-  const closeAllBtn = vscode.window.createStatusBarItem(alignment, btnPri);
-  closeAllBtn.name = "关闭所有";
-  closeAllBtn.text = "$(close-all)";
-  closeAllBtn.tooltip = "关闭所有标签页和 Copilot 侧边栏";
-  closeAllBtn.command = "copilotQuickPrompts.closeAll";
-  closeAllBtn.show();
-  disposables.push(closeAllBtn);
 }
 
 /** 从全局存储加载提示词列表 */
