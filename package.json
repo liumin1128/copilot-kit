@@ -4,6 +4,26 @@
   "description": "Quick prompt buttons for Copilot Chat — one-click insert of preset prompts",
   "version": "0.1.0",
   "publisher": "copilot-kit",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/liumin1128/copilot-kit"
+  },
+  "bugs": {
+    "url": "https://github.com/liumin1128/copilot-kit/issues"
+  },
+  "homepage": "https://github.com/liumin1128/copilot-kit#readme",
+  "keywords": [
+    "copilot",
+    "chat",
+    "quick-prompt",
+    "productivity",
+    "shortcuts"
+  ],
+  "icon": "icon.png",
+  "galleryBanner": {
+    "color": "#1e1e1e",
+    "theme": "dark"
+  },
   "engines": {
     "vscode": "^1.93.0"
   },

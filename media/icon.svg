@@ -1,0 +1,12 @@
+<svg width="128" height="128" viewBox="0 0 128 128" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background circle -->
+  <rect width="128" height="128" rx="24" fill="#1e1e1e"/>
+  <!-- Chat bubble -->
+  <path d="M34 52C34 44.268 40.268 38 48 38H80C87.732 38 94 44.268 94 52V68C94 75.732 87.732 82 80 82H68L54 94V82H48C40.268 82 34 75.732 34 68V52Z" fill="#4fc3f7" opacity="0.9"/>
+  <!-- Lightning bolt -->
+  <path d="M72 46L58 64H68L64 82L80 62H70L74 46H72Z" fill="#1e1e1e"/>
+  <!-- Sparkle dots -->
+  <circle cx="48" cy="48" r="3" fill="#81c784"/>
+  <circle cx="88" cy="56" r="2.5" fill="#81c784"/>
+  <circle cx="52" cy="80" r="2" fill="#81c784"/>
+</svg>
