@@ -233,38 +233,60 @@ export class QuickPromptsProvider implements vscode.WebviewViewProvider {
       --btn-primary-fg: var(--vscode-button-foreground);
       --btn-secondary: var(--vscode-button-secondaryBackground);
       --btn-secondary-fg: var(--vscode-button-secondaryForeground);
+      --list-active: var(--vscode-list-activeSelectionBackground);
+      --list-active-fg: var(--vscode-list-activeSelectionForeground);
+      --list-inactive: var(--vscode-list-inactiveSelectionBackground);
+      --list-inactive-fg: var(--vscode-list-inactiveSelectionForeground);
+      --list-focus: var(--vscode-list-focusBackground);
+      --list-focus-fg: var(--vscode-list-focusForeground);
     }
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
-      padding: 8px;
+      padding: 0;
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
       background: transparent;
       color: var(--fg);
       font-size: 13px;
     }
-    .container { display: flex; flex-direction: column; gap: 6px; }
+    .container { display: flex; flex-direction: column; }
+
+    /* --- VS Code 风格标题 --- */
+    .section-header {
+      display: flex;
+      align-items: center;
+      padding: 12px 12px 4px;
+      gap: 6px;
+      user-select: none;
+    }
+    .section-header .codicon {
+      font-size: 14px;
+      color: var(--desc);
+      flex-shrink: 0;
+    }
     .section-title {
       font-size: 11px;
       color: var(--desc);
       text-transform: uppercase;
       letter-spacing: 0.5px;
-      padding: 4px 0;
       font-weight: 600;
     }
 
-    /* --- 提示词卡片 --- */
+    /* --- VS Code 原生列表风格 --- */
+    .prompt-list {
+      padding: 2px 8px;
+    }
     .prompt-card {
       display: flex;
       align-items: center;
-      border: 1px solid var(--border);
-      border-radius: 6px;
-      background: var(--bg);
-      overflow: hidden;
-      transition: border-color 0.2s;
       padding: 6px 8px;
       gap: 8px;
+      border-radius: 4px;
+      cursor: default;
+      transition: background 0.1s;
     }
-    .prompt-card:hover { border-color: var(--btn-primary); }
+    .prompt-card:hover {
+      background: var(--hover);
+    }
 
     /* 点击区域 */
     .prompt-body {
@@ -274,34 +296,43 @@ export class QuickPromptsProvider implements vscode.WebviewViewProvider {
       gap: 8px;
       cursor: pointer;
       min-width: 0;
+      padding: 2px 0;
     }
-    .prompt-body:hover { opacity: 0.8; }
-    .prompt-body .icon { font-size: 16px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; width: 20px; }
-    .prompt-body .label {
-      font-size: 13px;
-      font-weight: 500;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-
-    /* 编辑按钮 */
-    .action-btn {
+    .prompt-body .icon {
+      font-size: 16px;
+      flex-shrink: 0;
       display: flex;
       align-items: center;
       justify-content: center;
-      width: 24px;
-      height: 24px;
+      width: 20px;
+    }
+    .prompt-body .label {
+      font-size: 13px;
+      font-weight: 400;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      color: var(--fg);
+    }
+
+    /* 编辑按钮（默认隐藏，悬停显示） */
+    .action-btn {
+      display: none;
+      align-items: center;
+      justify-content: center;
+      width: 20px;
+      height: 20px;
       border: none;
       background: transparent;
       cursor: pointer;
       color: var(--desc);
-      font-size: 13px;
+      font-size: 12px;
       border-radius: 4px;
       flex-shrink: 0;
       transition: background 0.15s, color 0.15s;
     }
-    .action-btn:hover { background: var(--hover); color: #4fc3f7; }
+    .prompt-card:hover .action-btn { display: flex; }
+    .action-btn:hover { background: var(--hover); color: var(--fg); }
 
     /* --- 编辑弹窗 --- */
     .modal-overlay {
@@ -396,32 +427,32 @@ export class QuickPromptsProvider implements vscode.WebviewViewProvider {
     .icon-option.active { border-color: var(--btn-primary); background: var(--btn-primary); color: var(--btn-primary-fg); }
 
     .hint {
-      font-size: 10px;
+      font-size: 11px;
       color: var(--desc);
       text-align: center;
-      padding: 6px 0 2px;
+      padding: 8px 0 4px;
       opacity: 0.7;
     }
 
     /* --- 位置选择器 --- */
     .position-section {
-      margin-top: 8px;
-      padding-top: 8px;
+      border-top: 1px solid var(--border);
+      margin-top: 4px;
+      padding-top: 4px;
     }
     .position-options {
       display: flex;
-      gap: 2px;
-      margin-top: 6px;
+      gap: 4px;
     }
     .pos-btn {
       flex: 1;
       text-align: center;
-      padding: 4px 2px;
+      padding: 5px 2px;
       border: 1px solid var(--border);
       border-radius: 4px;
       background: transparent;
       color: var(--desc);
-      font-size: 10px;
+      font-size: 11px;
       cursor: pointer;
       transition: all 0.15s;
       line-height: 1.3;
@@ -444,7 +475,7 @@ export class QuickPromptsProvider implements vscode.WebviewViewProvider {
       background: var(--vscode-editorWidget-background);
       border: 1px solid var(--border);
       padding: 8px 16px;
-      border-radius: 6px;
+      border-radius: 4px;
       font-size: 12px;
       color: var(--vscode-editorWidget-foreground);
       white-space: nowrap;
@@ -459,9 +490,9 @@ export class QuickPromptsProvider implements vscode.WebviewViewProvider {
       justify-content: center;
       gap: 4px;
       width: 100%;
-      padding: 8px;
+      padding: 6px 8px;
       border: 1px dashed var(--border);
-      border-radius: 8px;
+      border-radius: 4px;
       background: transparent;
       color: var(--desc);
       font-size: 12px;
@@ -548,10 +579,15 @@ export class QuickPromptsProvider implements vscode.WebviewViewProvider {
 </head>
 <body>
   <div class="container">
-    <div class="section-title"><span class="codicon codicon-sparkle" style="margin-right: 4px; font-size: 12px;"></span>快捷提示词</div>
-    <div id="promptList"></div>
-    <button class="add-btn" id="addBtn"><span class="codicon codicon-plus"></span> 添加快捷按钮</button>
-    <div class="hint">点击执行 · 右键附带代码</div>
+    <div class="section-header">
+      <span class="codicon codicon-sparkle"></span>
+      <span class="section-title">快捷提示词</span>
+    </div>
+    <div class="prompt-list" id="promptList"></div>
+    <div style="padding: 0 12px;">
+      <button class="add-btn" id="addBtn"><span class="codicon codicon-plus"></span> 添加快捷按钮</button>
+      <div class="hint">点击执行 · 右键附带代码</div>
+    </div>
     <div class="position-section">
       <div class="section-title"><span class="codicon codicon-arrow-left" style="margin-right: 4px; font-size: 12px;"></span>状态栏位置</div>
       <div class="position-options" id="positionOptions">
