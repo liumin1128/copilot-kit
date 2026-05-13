@@ -25,12 +25,13 @@ export function getPositionConfig(): {
   switch (position) {
     case "leftLeft":
       return { alignment: vscode.StatusBarAlignment.Left, basePriority: 200 };
-    case "leftRight":
-      return { alignment: vscode.StatusBarAlignment.Left, basePriority: 50 };
     case "rightLeft":
       return { alignment: vscode.StatusBarAlignment.Right, basePriority: 50 };
     case "rightRight":
       return { alignment: vscode.StatusBarAlignment.Right, basePriority: 200 };
+    case "leftRight":
+    default:
+      return { alignment: vscode.StatusBarAlignment.Left, basePriority: 50 };
   }
 }
 
@@ -275,12 +276,8 @@ export class QuickPromptsProvider implements vscode.WebviewViewProvider {
       --btn-primary-fg: var(--vscode-button-foreground);
       --btn-secondary: var(--vscode-button-secondaryBackground);
       --btn-secondary-fg: var(--vscode-button-secondaryForeground);
-      --list-active: var(--vscode-list-activeSelectionBackground);
-      --list-active-fg: var(--vscode-list-activeSelectionForeground);
-      --list-inactive: var(--vscode-list-inactiveSelectionBackground);
-      --list-inactive-fg: var(--vscode-list-inactiveSelectionForeground);
-      --list-focus: var(--vscode-list-focusBackground);
-      --list-focus-fg: var(--vscode-list-focusForeground);
+      --badge-bg: var(--vscode-badge-background);
+      --badge-fg: var(--vscode-badge-foreground);
     }
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
@@ -289,48 +286,77 @@ export class QuickPromptsProvider implements vscode.WebviewViewProvider {
       background: transparent;
       color: var(--fg);
       font-size: 13px;
+      line-height: 1.5;
+      overflow-x: hidden;
     }
-    .container { display: flex; flex-direction: column; }
+    .container {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
 
-    /* --- VS Code 风格标题 --- */
+    /* === 头部 === */
     .section-header {
       display: flex;
       align-items: center;
-      padding: 12px 12px 4px;
-      gap: 6px;
+      padding: 14px 12px 6px 12px;
+      gap: 7px;
       user-select: none;
+      border-bottom: 1px solid var(--border);
+      margin: 0 0 4px 0;
     }
     .section-header .codicon {
-      font-size: 14px;
+      font-size: 15px;
       color: var(--desc);
       flex-shrink: 0;
+      transition: transform 0.2s ease;
+    }
+    .section-header:hover .codicon {
+      transform: scale(1.1) rotate(-8deg);
     }
     .section-title {
       font-size: 11px;
       color: var(--desc);
       text-transform: uppercase;
-      letter-spacing: 0.5px;
+      letter-spacing: 0.8px;
       font-weight: 600;
     }
+    .section-badge {
+      margin-left: auto;
+      font-size: 10px;
+      background: var(--badge-bg, var(--btn-secondary));
+      color: var(--badge-fg, var(--btn-secondary-fg));
+      padding: 1px 6px;
+      border-radius: 8px;
+      font-weight: 500;
+      opacity: 0.8;
+    }
 
-    /* --- VS Code 原生列表风格 --- */
+    /* === 提示词列表 === */
     .prompt-list {
-      padding: 2px 8px;
+      padding: 0 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 1px;
     }
     .prompt-card {
       display: flex;
       align-items: center;
-      padding: 6px 8px;
-      gap: 8px;
-      border-radius: 4px;
+      padding: 5px 8px;
+      gap: 6px;
+      border-radius: 6px;
       cursor: default;
-      transition: background 0.1s;
+      transition: background 0.15s ease, transform 0.12s ease, box-shadow 0.15s ease;
+      position: relative;
     }
     .prompt-card:hover {
       background: var(--hover);
     }
+    .prompt-card:active {
+      transform: scale(0.985);
+    }
 
-    /* 点击区域 */
+    /* 点击主体 */
     .prompt-body {
       flex: 1;
       display: flex;
@@ -338,15 +364,24 @@ export class QuickPromptsProvider implements vscode.WebviewViewProvider {
       gap: 8px;
       cursor: pointer;
       min-width: 0;
-      padding: 2px 0;
+      padding: 3px 0;
     }
-    .prompt-body .icon {
-      font-size: 16px;
-      flex-shrink: 0;
+    .prompt-body .icon-wrap {
+      width: 22px;
+      height: 22px;
       display: flex;
       align-items: center;
       justify-content: center;
-      width: 20px;
+      flex-shrink: 0;
+      border-radius: 4px;
+      transition: background 0.15s ease;
+    }
+    .prompt-card:hover .icon-wrap {
+      background: rgba(128,128,128,0.08);
+    }
+    .prompt-body .icon-wrap .codicon {
+      font-size: 15px;
+      color: var(--fg);
     }
     .prompt-body .label {
       font-size: 13px;
@@ -356,14 +391,36 @@ export class QuickPromptsProvider implements vscode.WebviewViewProvider {
       text-overflow: ellipsis;
       color: var(--fg);
     }
+    .prompt-body .label-meta {
+      font-size: 10px;
+      color: var(--desc);
+      margin-left: auto;
+      opacity: 0;
+      transition: opacity 0.15s ease;
+      padding-right: 2px;
+    }
+    .prompt-card:hover .label-meta {
+      opacity: 0.6;
+    }
 
-    /* 编辑按钮（默认隐藏，悬停显示） */
-    .action-btn {
-      display: none;
+    /* 操作按钮组 */
+    .btn-group {
+      display: flex;
+      align-items: center;
+      gap: 1px;
+      opacity: 0;
+      transition: opacity 0.15s ease;
+    }
+    .prompt-card:hover .btn-group {
+      opacity: 1;
+    }
+
+    .action-btn, .move-btn {
+      display: flex;
       align-items: center;
       justify-content: center;
-      width: 20px;
-      height: 20px;
+      width: 22px;
+      height: 22px;
       border: none;
       background: transparent;
       cursor: pointer;
@@ -371,78 +428,219 @@ export class QuickPromptsProvider implements vscode.WebviewViewProvider {
       font-size: 12px;
       border-radius: 4px;
       flex-shrink: 0;
-      transition: background 0.15s, color 0.15s;
+      transition: background 0.12s ease, color 0.12s ease, transform 0.1s ease;
     }
-    .prompt-card:hover .action-btn { display: flex; }
-    .action-btn:hover { background: var(--hover); color: var(--fg); }
-    .action-btn:disabled { opacity: 0.3; cursor: default; }
-    .action-btn:disabled:hover { background: transparent; color: var(--desc); }
-
-    /* 上移/下移按钮 */
-    .move-btn {
-      display: none;
-      align-items: center;
-      justify-content: center;
-      width: 18px;
-      height: 18px;
-      border: none;
+    .move-btn { font-size: 11px; }
+    .action-btn:hover, .move-btn:hover {
+      background: rgba(128,128,128,0.15);
+      color: var(--fg);
+    }
+    .action-btn:active, .move-btn:active {
+      transform: scale(0.9);
+    }
+    .action-btn:disabled, .move-btn:disabled {
+      opacity: 0.25;
+      cursor: default;
+    }
+    .action-btn:disabled:hover, .move-btn:disabled:hover {
       background: transparent;
-      cursor: pointer;
       color: var(--desc);
-      font-size: 11px;
-      border-radius: 3px;
-      flex-shrink: 0;
-      transition: background 0.15s, color 0.15s;
     }
-    .prompt-card:hover .move-btn { display: flex; }
-    .move-btn:hover { background: var(--hover); color: var(--fg); }
-    .move-btn:disabled { opacity: 0.3; cursor: default; }
-    .move-btn:disabled:hover { background: transparent; color: var(--desc); }
+    .action-btn:disabled:active, .move-btn:disabled:active {
+      transform: none;
+    }
 
-    /* 隐藏项样式 */
+    /* 隐藏项 */
     .prompt-card.hidden-item {
       opacity: 0.4;
+      transition: opacity 0.2s ease;
     }
     .prompt-card.hidden-item:hover {
-      opacity: 1;
+      opacity: 0.85;
     }
 
-    /* --- 编辑弹窗 --- */
+    /* === 底部操作区 === */
+    .footer-actions {
+      padding: 6px 12px 2px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .add-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 5px;
+      width: 100%;
+      padding: 7px 8px;
+      border: 1.5px dashed var(--border);
+      border-radius: 6px;
+      background: transparent;
+      color: var(--desc);
+      font-size: 12px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      font-weight: 500;
+    }
+    .add-btn:hover {
+      border-color: var(--btn-primary);
+      color: var(--btn-primary-fg);
+      background: var(--btn-primary);
+      border-style: solid;
+    }
+    .add-btn:active {
+      transform: scale(0.98);
+    }
+    .add-btn .codicon {
+      font-size: 14px;
+      font-weight: 700;
+    }
+    .hint {
+      font-size: 10.5px;
+      color: var(--desc);
+      text-align: center;
+      padding: 5px 0 2px;
+      opacity: 0.55;
+      letter-spacing: 0.2px;
+      user-select: none;
+    }
+
+    /* === 设置区域 === */
+    .settings-section {
+      border-top: 1px solid var(--border);
+      margin: 2px 0 0;
+      padding: 8px 12px 10px;
+    }
+    .settings-header {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      user-select: none;
+      margin-bottom: 8px;
+    }
+    .settings-header .codicon {
+      font-size: 12px;
+      color: var(--desc);
+      flex-shrink: 0;
+    }
+    .settings-title {
+      font-size: 10.5px;
+      color: var(--desc);
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      font-weight: 600;
+    }
+    .position-options {
+      display: flex;
+      gap: 5px;
+    }
+    .pos-btn {
+      flex: 1;
+      text-align: center;
+      padding: 6px 2px;
+      border: 1px solid var(--border);
+      border-radius: 5px;
+      background: transparent;
+      color: var(--desc);
+      font-size: 11px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      line-height: 1.3;
+      font-weight: 500;
+    }
+    .pos-btn:hover {
+      border-color: var(--btn-primary);
+      color: var(--fg);
+      background: rgba(128,128,128,0.06);
+    }
+    .pos-btn:active {
+      transform: scale(0.96);
+    }
+    .pos-btn.active {
+      background: var(--btn-primary);
+      color: var(--btn-primary-fg);
+      border-color: var(--btn-primary);
+    }
+
+    /* === Toast === */
+    .toast {
+      display: none;
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%) translateY(10px);
+      background: var(--vscode-editorWidget-background);
+      border: 1px solid var(--border);
+      padding: 7px 16px;
+      border-radius: 6px;
+      font-size: 12px;
+      color: var(--vscode-editorWidget-foreground);
+      white-space: nowrap;
+      z-index: 1000;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.18);
+      opacity: 0;
+      transition: opacity 0.2s ease, transform 0.2s ease;
+      pointer-events: none;
+    }
+    .toast.show {
+      display: block;
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+
+    /* === 编辑弹窗 === */
     .modal-overlay {
       display: none;
       position: fixed;
       inset: 0;
-      background: rgba(0,0,0,0.4);
+      background: rgba(0,0,0,0.45);
       z-index: 999;
       align-items: flex-end;
       justify-content: center;
+      opacity: 0;
+      transition: opacity 0.2s ease;
     }
-    .modal-overlay.show { display: flex; }
+    .modal-overlay.show {
+      display: flex;
+      opacity: 1;
+    }
     .modal {
       background: var(--bg);
       border: 1px solid var(--border);
-      border-radius: 12px 12px 0 0;
-      padding: 16px 20px 24px;
+      border-radius: 14px 14px 0 0;
+      padding: 18px 22px 26px;
       width: 100%;
-      max-width: 400px;
-      max-height: 80vh;
+      max-width: 420px;
+      max-height: 82vh;
       overflow-y: auto;
-      box-shadow: 0 -4px 20px rgba(0,0,0,0.2);
+      box-shadow: 0 -6px 28px rgba(0,0,0,0.22);
+      transform: translateY(100%);
+      transition: transform 0.25s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+    .modal-overlay.show .modal {
+      transform: translateY(0);
     }
     .modal h3 {
       font-size: 15px;
       font-weight: 600;
-      margin-bottom: 14px;
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .modal h3 .codicon {
+      font-size: 16px;
     }
     .modal label {
       display: block;
       font-size: 11px;
       color: var(--desc);
       margin-bottom: 4px;
-      margin-top: 10px;
+      margin-top: 12px;
+      letter-spacing: 0.2px;
     }
     .modal label:first-of-type { margin-top: 0; }
-    .modal input, .modal textarea {
+    .modal input, .modal textarea, .modal select {
       width: 100%;
       padding: 8px 10px;
       border: 1px solid var(--input-border);
@@ -452,27 +650,34 @@ export class QuickPromptsProvider implements vscode.WebviewViewProvider {
       font-size: 13px;
       font-family: inherit;
       outline: none;
+      transition: border-color 0.15s ease;
     }
     .modal input:focus, .modal textarea:focus {
       border-color: var(--btn-primary);
+      box-shadow: 0 0 0 1px var(--btn-primary);
     }
     .modal textarea {
       resize: vertical;
-      min-height: 80px;
+      min-height: 72px;
+      line-height: 1.5;
     }
     .modal-actions {
       display: flex;
       gap: 8px;
-      margin-top: 16px;
+      margin-top: 18px;
     }
     .modal-actions button {
       flex: 1;
-      padding: 8px 0;
+      padding: 9px 0;
       border: none;
       border-radius: 6px;
       font-size: 13px;
       font-weight: 500;
       cursor: pointer;
+      transition: transform 0.1s ease, opacity 0.15s ease;
+    }
+    .modal-actions button:active {
+      transform: scale(0.97);
     }
     .btn-cancel {
       background: var(--btn-secondary);
@@ -483,99 +688,62 @@ export class QuickPromptsProvider implements vscode.WebviewViewProvider {
       color: var(--btn-primary-fg);
     }
 
+    /* 图标选择 */
     .icon-option {
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      width: 28px;
-      height: 28px;
-      border: 1px solid var(--border);
-      border-radius: 4px;
+      width: 30px;
+      height: 30px;
+      border: 1.5px solid var(--border);
+      border-radius: 5px;
       cursor: pointer;
       font-size: 16px;
       color: var(--fg);
-      transition: border-color 0.15s, background 0.15s;
+      transition: border-color 0.12s ease, background 0.12s ease, transform 0.1s ease;
     }
-    .icon-option:hover { border-color: var(--btn-primary); background: var(--hover); }
-    .icon-option.active { border-color: var(--btn-primary); background: var(--btn-primary); color: var(--btn-primary-fg); }
+    .icon-option:hover {
+      border-color: var(--btn-primary);
+      background: var(--hover);
+      transform: scale(1.08);
+    }
+    .icon-option.active {
+      border-color: var(--btn-primary);
+      background: var(--btn-primary);
+      color: var(--btn-primary-fg);
+      transform: scale(1.05);
+    }
 
-    .hint {
-      font-size: 11px;
-      color: var(--desc);
-      text-align: center;
-      padding: 8px 0 4px;
-      opacity: 0.7;
-    }
-
-    /* --- 位置选择器 --- */
-    .position-section {
-      border-top: 1px solid var(--border);
-      margin-top: 4px;
-      padding-top: 4px;
-    }
-    .position-options {
+    /* 显示/执行模式选择 */
+    .display-mode-options {
       display: flex;
-      gap: 4px;
+      gap: 5px;
+      margin-top: 6px;
     }
-    .pos-btn {
+    .mode-option {
       flex: 1;
       text-align: center;
-      padding: 5px 2px;
+      padding: 7px 4px;
       border: 1px solid var(--border);
-      border-radius: 4px;
+      border-radius: 6px;
       background: transparent;
       color: var(--desc);
       font-size: 11px;
       cursor: pointer;
-      transition: all 0.15s;
-      line-height: 1.3;
+      transition: all 0.15s ease;
+      font-weight: 500;
     }
-    .pos-btn:hover {
+    .mode-option:hover {
       border-color: var(--btn-primary);
       color: var(--fg);
     }
-    .pos-btn.active {
+    .mode-option:active {
+      transform: scale(0.96);
+    }
+    .mode-option.active {
       background: var(--btn-primary);
       color: var(--btn-primary-fg);
       border-color: var(--btn-primary);
-    }
-    .toast {
-      display: none;
-      position: fixed;
-      bottom: 16px;
-      left: 50%;
-      transform: translateX(-50%);
-      background: var(--vscode-editorWidget-background);
-      border: 1px solid var(--border);
-      padding: 8px 16px;
-      border-radius: 4px;
-      font-size: 12px;
-      color: var(--vscode-editorWidget-foreground);
-      white-space: nowrap;
-      z-index: 1000;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-    }
-    .toast.show { display: block; }
-    /* 添加按钮 */
-    .add-btn {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 4px;
-      width: 100%;
-      padding: 6px 8px;
-      border: 1px dashed var(--border);
-      border-radius: 4px;
-      background: transparent;
-      color: var(--desc);
-      font-size: 12px;
-      cursor: pointer;
-      transition: all 0.15s;
-    }
-    .add-btn:hover {
-      border-color: var(--btn-primary);
-      color: var(--btn-primary-fg);
-      background: var(--btn-primary);
     }
 
     /* 删除确认弹窗 */
@@ -583,25 +751,42 @@ export class QuickPromptsProvider implements vscode.WebviewViewProvider {
       display: none;
       position: fixed;
       inset: 0;
-      background: rgba(0,0,0,0.4);
+      background: rgba(0,0,0,0.45);
       z-index: 1000;
       align-items: center;
       justify-content: center;
+      opacity: 0;
+      transition: opacity 0.2s ease;
     }
-    .confirm-overlay.show { display: flex; }
+    .confirm-overlay.show {
+      display: flex;
+      opacity: 1;
+    }
     .confirm-box {
       background: var(--bg);
       border: 1px solid var(--border);
-      border-radius: 10px;
-      padding: 20px 24px;
+      border-radius: 12px;
+      padding: 24px 28px;
       width: 280px;
-      box-shadow: 0 4px 20px rgba(0,0,0,0.25);
+      box-shadow: 0 8px 32px rgba(0,0,0,0.28);
       text-align: center;
+      transform: scale(0.92);
+      transition: transform 0.2s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+    .confirm-overlay.show .confirm-box {
+      transform: scale(1);
+    }
+    .confirm-box .confirm-icon {
+      font-size: 28px;
+      color: #e53935;
+      display: block;
+      margin-bottom: 10px;
     }
     .confirm-box p {
       font-size: 14px;
-      margin-bottom: 18px;
+      margin-bottom: 20px;
       line-height: 1.5;
+      color: var(--fg);
     }
     .confirm-actions {
       display: flex;
@@ -615,54 +800,62 @@ export class QuickPromptsProvider implements vscode.WebviewViewProvider {
       font-size: 13px;
       font-weight: 500;
       cursor: pointer;
+      transition: transform 0.1s ease;
+    }
+    .confirm-actions button:active {
+      transform: scale(0.97);
     }
     .btn-danger {
       background: #e53935;
       color: #fff;
     }
     .btn-danger:hover { background: #c62828; }
-    /* 显示方式选择 */
-    .display-mode-options {
-      display: flex;
-      gap: 4px;
-      margin-top: 6px;
+
+    /* 滚动条美化 */
+    ::-webkit-scrollbar {
+      width: 3px;
     }
-    .mode-option {
-      flex: 1;
-      text-align: center;
-      padding: 6px 4px;
-      border: 1px solid var(--border);
-      border-radius: 6px;
-      background: transparent;
-      color: var(--desc);
-      font-size: 11px;
-      cursor: pointer;
-      transition: all 0.15s;
+    ::-webkit-scrollbar-thumb {
+      background: var(--border);
+      border-radius: 4px;
     }
-    .mode-option:hover {
-      border-color: var(--btn-primary);
-      color: var(--fg);
+    ::-webkit-scrollbar-thumb:hover {
+      background: var(--desc);
     }
-    .mode-option.active {
-      background: var(--btn-primary);
-      color: var(--btn-primary-fg);
-      border-color: var(--btn-primary);
+
+    /* 响应式: 窄侧边栏时隐藏部分控件 */
+    @media (max-width: 250px) {
+      .btn-group { display: none; }
+      .settings-section { display: none; }
+      .section-badge { display: none; }
+      .label-meta { display: none !important; }
     }
   </style>
 </head>
 <body>
   <div class="container">
+    <!-- 头部 -->
     <div class="section-header">
       <span class="codicon codicon-sparkle"></span>
       <span class="section-title">快捷提示词</span>
+      <span class="section-badge" id="countBadge">0</span>
     </div>
+
+    <!-- 提示词列表 -->
     <div class="prompt-list" id="promptList"></div>
-    <div style="padding: 0 12px;">
+
+    <!-- 底部操作区 -->
+    <div class="footer-actions">
       <button class="add-btn" id="addBtn"><span class="codicon codicon-plus"></span> 添加快捷按钮</button>
-      <div class="hint">点击执行 · 右键附带代码</div>
+      <div class="hint">单击执行  ·  右键附带代码</div>
     </div>
-    <div class="position-section">
-      <div class="section-title"><span class="codicon codicon-arrow-left" style="margin-right: 4px; font-size: 12px;"></span>状态栏位置</div>
+
+    <!-- 设置：状态栏位置 -->
+    <div class="settings-section">
+      <div class="settings-header">
+        <span class="codicon codicon-settings-gear"></span>
+        <span class="settings-title">状态栏位置</span>
+      </div>
       <div class="position-options" id="positionOptions">
         <button class="pos-btn" data-pos="leftLeft">左左</button>
         <button class="pos-btn" data-pos="leftRight">左右</button>
@@ -670,13 +863,16 @@ export class QuickPromptsProvider implements vscode.WebviewViewProvider {
         <button class="pos-btn" data-pos="rightRight">右右</button>
       </div>
     </div>
+
+    <!-- Toast -->
     <div class="toast" id="toast"></div>
   </div>
 
   <!-- 删除确认弹窗 -->
   <div class="confirm-overlay" id="confirmOverlay">
     <div class="confirm-box">
-      <p><span class="codicon codicon-trash" style="font-size: 24px; color: #e53935; display: block; margin-bottom: 8px;"></span>确定要删除该快捷按钮吗？</p>
+      <span class="codicon codicon-trash confirm-icon"></span>
+      <p>确定要删除该快捷按钮吗？</p>
       <div class="confirm-actions">
         <button class="btn-cancel" id="confirmCancel">取消</button>
         <button class="btn-danger" id="confirmDelete">确认删除</button>
@@ -687,7 +883,7 @@ export class QuickPromptsProvider implements vscode.WebviewViewProvider {
   <!-- 编辑弹窗 -->
   <div class="modal-overlay" id="modalOverlay">
     <div class="modal">
-      <h3 id="modalTitle">编辑提示词</h3>
+      <h3><span class="codicon codicon-edit"></span> <span id="modalTitle">编辑提示词</span></h3>
       <label>标题</label>
       <input type="text" id="editLabel" placeholder="按钮显示名称" />
       <label>图标（codicon 名称）</label>
@@ -754,24 +950,33 @@ export class QuickPromptsProvider implements vscode.WebviewViewProvider {
       function render(prompts) {
         promptsCache = prompts;
         const total = prompts.length;
+        // 更新计数徽章
+        const visibleCount = prompts.filter(p => !p.hidden).length;
+        document.getElementById('countBadge').textContent = visibleCount;
+
         promptList.innerHTML = prompts.map((p, index) => \`
           <div class="prompt-card\${p.hidden ? ' hidden-item' : ''}">
             <div class="prompt-body" data-id="\${p.id}" data-builtin="\${!!p.builtIn}">
-              <span class="icon codicon codicon-\${p.icon}"></span>
+              <span class="icon-wrap">
+                <span class="codicon codicon-\${p.icon}"></span>
+              </span>
               <span class="label">\${escapeHtml(p.label)}</span>
+              <span class="label-meta">\${p.builtIn ? '内置' : (p.mode === 'direct' ? '直接' : '写入')}</span>
             </div>
-            <button class="move-btn\${index === 0 ? '' : ''}" data-id="\${p.id}" data-action="up" title="上移"\${index === 0 ? ' disabled' : ''}>
-              <span class="codicon codicon-chevron-up"></span>
-            </button>
-            <button class="move-btn" data-id="\${p.id}" data-action="down" title="下移"\${index === total - 1 ? ' disabled' : ''}>
-              <span class="codicon codicon-chevron-down"></span>
-            </button>
-            <button class="action-btn eye-btn" data-id="\${p.id}" title="\${p.hidden ? '显示' : '隐藏'}">
-              <span class="codicon codicon-\${p.hidden ? 'eye-closed' : 'eye'}"></span>
-            </button>
-            <button class="action-btn edit-btn" data-id="\${p.id}" title="\${p.builtIn ? '内置项不可编辑' : '编辑'}"\${p.builtIn ? ' disabled' : ''}>
-              <span class="codicon codicon-edit"></span>
-            </button>
+            <div class="btn-group">
+              <button class="move-btn" data-id="\${p.id}" data-action="up" title="上移"\${index === 0 ? ' disabled' : ''}>
+                <span class="codicon codicon-chevron-up"></span>
+              </button>
+              <button class="move-btn" data-id="\${p.id}" data-action="down" title="下移"\${index === total - 1 ? ' disabled' : ''}>
+                <span class="codicon codicon-chevron-down"></span>
+              </button>
+              <button class="action-btn eye-btn" data-id="\${p.id}" title="\${p.hidden ? '显示' : '隐藏'}">
+                <span class="codicon codicon-\${p.hidden ? 'eye-closed' : 'eye'}"></span>
+              </button>
+              <button class="action-btn edit-btn" data-id="\${p.id}" title="\${p.builtIn ? '内置项不可编辑' : '编辑'}"\${p.builtIn ? ' disabled' : ''}>
+                <span class="codicon codicon-edit"></span>
+              </button>
+            </div>
           </div>
         \`).join('');
 
@@ -872,7 +1077,13 @@ export class QuickPromptsProvider implements vscode.WebviewViewProvider {
 
       function openEditModal(item) {
         editingId = item.id;
-        modalTitle.textContent = item.id ? '编辑提示词' : '添加快捷按钮';
+        const isAdd = !item.id;
+        modalTitle.textContent = isAdd ? '添加快捷按钮' : '编辑提示词';
+        // 更新标题图标
+        const titleIcon = document.querySelector('.modal h3 .codicon:first-child');
+        if (titleIcon) {
+          titleIcon.className = 'codicon codicon-' + (isAdd ? 'add' : 'edit');
+        }
         editLabel.value = item.label || '';
         editIcon.value = item.icon || 'sparkle';
         editPrompt.value = item.prompt || '';
@@ -891,7 +1102,7 @@ export class QuickPromptsProvider implements vscode.WebviewViewProvider {
           el.classList.toggle('active', el.dataset.mode === execMode);
         });
         // 显示/隐藏删除按钮（新增时隐藏）
-        btnDelete.style.display = item.id ? 'block' : 'none';
+        btnDelete.style.display = isAdd ? 'none' : 'block';
         modalOverlay.classList.add('show');
         editLabel.focus();
         updateIconPreview();
