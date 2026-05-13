@@ -4,6 +4,9 @@ import {
   PromptItem,
   STORAGE_KEY,
   DEFAULT_PROMPTS,
+  CONFIG_KEY,
+  StatusBarPosition,
+  getPositionConfig,
 } from "./quickPromptsProvider";
 
 export function activate(context: vscode.ExtensionContext) {
@@ -31,28 +34,24 @@ export function activate(context: vscode.ExtensionContext) {
   );
   context.subscriptions.push(sendPromptCommand);
 
-  // 注册打开新聊天标签页的命令
-  const openNewChatTabCommand = vscode.commands.registerCommand(
-    "copilotQuickPrompts.openNewChatTab",
-    async () => {
-      await openNewChatTab();
-    },
-  );
-  context.subscriptions.push(openNewChatTabCommand);
-
-  // 创建状态栏快捷按钮，并监听 provider 变更事件
+  // 初始化状态栏
   const statusBarDisposables: vscode.Disposable[] = [];
-  createStatusBarItems(context.globalState, statusBarDisposables);
+  const rebuildStatusBar = () => createStatusBarItems(context, statusBarDisposables);
+  rebuildStatusBar();
+
+  // 监听配置变更自动刷新状态栏
   context.subscriptions.push(
-    provider.onDidChangePrompts(() => {
-      createStatusBarItems(context.globalState, statusBarDisposables);
+    vscode.workspace.onDidChangeConfiguration((e) => {
+      if (e.affectsConfiguration(CONFIG_KEY)) {
+        rebuildStatusBar();
+      }
     }),
   );
 }
 
-/** 创建状态栏快捷按钮（每个预设提示词一个图标按钮） */
+/** 创建状态栏快捷按钮 */
 function createStatusBarItems(
-  storage: vscode.Memento,
+  context: vscode.ExtensionContext,
   disposables: vscode.Disposable[],
 ): void {
   // 先释放旧的按钮
@@ -61,38 +60,25 @@ function createStatusBarItems(
   }
   disposables.length = 0;
 
-  const prompts = loadPrompts(storage);
+  const prompts = loadPrompts(context.globalState);
+  const { alignment, basePriority, buttonsBeforeRocket } = getPositionConfig();
 
-  // 添加一个分组标签（放在最左边）
-  const label = vscode.window.createStatusBarItem(
-    vscode.StatusBarAlignment.Left,
-    100,
-  );
+  // 根据 buttonsBeforeRocket 决定优先级：true=按钮更靠边，false=火箭更靠边
+  const rocketPri = buttonsBeforeRocket ? basePriority : basePriority + 1;
+  const btnPri = buttonsBeforeRocket ? basePriority + 1 : basePriority;
+
+  // 分组标签
+  const label = vscode.window.createStatusBarItem(alignment, rocketPri);
   label.text = "$(rocket)";
   label.name = "快捷提示";
   label.tooltip = "Copilot 快捷提示词";
   label.show();
   disposables.push(label);
 
-  // 新增聊天标签页按钮
-  const newChatTabBtn = vscode.window.createStatusBarItem(
-    vscode.StatusBarAlignment.Left,
-    99.5,
-  );
-  newChatTabBtn.text = "$(plus)";
-  newChatTabBtn.name = "新建聊天标签页";
-  newChatTabBtn.tooltip = "新建聊天标签页（向右拆分编辑器）";
-  newChatTabBtn.command = {
-    command: "copilotQuickPrompts.openNewChatTab",
-    title: "新建聊天标签页",
-  };
-  newChatTabBtn.show();
-  disposables.push(newChatTabBtn);
-
   prompts.forEach((item) => {
     const statusBar = vscode.window.createStatusBarItem(
-      vscode.StatusBarAlignment.Left,
-      99,
+      alignment,
+      btnPri,
     );
     statusBar.name = `快捷提示: ${item.label}`;
     statusBar.text = `$(${item.icon})`;
@@ -146,28 +132,6 @@ async function sendToCopilotChat(
   } catch {
     await vscode.env.clipboard.writeText(promptText);
     vscode.window.showInformationMessage("提示词已复制到剪贴板");
-  }
-}
-
-/**
- * 打开一个新的聊天标签页（在编辑器区域，而非侧边栏）
- * - 当前有标签页时：向右拆分编辑器，在新组中打开聊天
- * - 当前无标签页时：直接在当前组打开聊天（避免产生空白标签页）
- */
-async function openNewChatTab(): Promise<void> {
-  try {
-    const hasTabs = vscode.window.tabGroups.activeTabGroup.tabs.length > 0;
-
-    if (hasTabs) {
-      // 已有标签页 → 向右拆分，在新组中打开聊天
-      await vscode.commands.executeCommand("workbench.action.splitEditorRight");
-      await vscode.commands.executeCommand("workbench.action.openChat");
-    } else {
-      // 无标签页 → 直接在当前组打开聊天（避免产生空白 untitled 标签页）
-      await vscode.commands.executeCommand("workbench.action.openChat");
-    }
-  } catch {
-    await vscode.commands.executeCommand("workbench.action.openChat");
   }
 }
 

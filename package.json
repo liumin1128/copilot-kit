@@ -16,15 +16,32 @@
   ],
   "main": "./dist/extension.js",
   "contributes": {
+    "configuration": {
+      "title": "Copilot Quick Prompts",
+      "properties": {
+        "copilotQuickPrompts.statusBarPosition": {
+          "type": "string",
+          "enum": [
+            "leftLeft",
+            "leftRight",
+            "rightLeft",
+            "rightRight"
+          ],
+          "enumDescriptions": [
+            "左侧靠边，按钮在火箭左边",
+            "左侧，火箭在按钮左边（默认）",
+            "右侧，火箭在按钮右边",
+            "右侧靠边，按钮在火箭右边"
+          ],
+          "default": "leftRight",
+          "description": "状态栏快捷按钮的显示位置"
+        }
+      }
+    },
     "commands": [
       {
         "command": "copilotQuickPrompts.sendPrompt",
         "title": "发送快捷提示词到Copilot聊天"
-      },
-      {
-        "command": "copilotQuickPrompts.openNewChatTab",
-        "title": "打开新的聊天标签页",
-        "icon": "$(comment-discussion)"
       }
     ],
     "viewsContainers": {

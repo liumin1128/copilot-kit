@@ -33,8 +33,31 @@ var __importStar = (this && this.__importStar) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.QuickPromptsProvider = exports.DEFAULT_PROMPTS = exports.STORAGE_KEY = void 0;
+exports.QuickPromptsProvider = exports.DEFAULT_PROMPTS = exports.STORAGE_KEY = exports.CONFIG_KEY = void 0;
+exports.getPositionConfig = getPositionConfig;
 const vscode = __importStar(require("vscode"));
+exports.CONFIG_KEY = "copilotQuickPrompts.statusBarPosition";
+/**
+ * 根据配置获取状态栏对齐方式和优先级
+ * @returns alignment - 对齐方向
+ * @returns basePriority - 分组在状态栏上的基准位置
+ * @returns buttonsBeforeRocket - true=按钮在火箭左边/上边，false=火箭在按钮左边/上边
+ */
+function getPositionConfig() {
+    const position = vscode.workspace
+        .getConfiguration()
+        .get(exports.CONFIG_KEY, "leftRight");
+    switch (position) {
+        case "leftLeft":
+            return { alignment: vscode.StatusBarAlignment.Left, basePriority: 200, buttonsBeforeRocket: true };
+        case "leftRight":
+            return { alignment: vscode.StatusBarAlignment.Left, basePriority: 50, buttonsBeforeRocket: false };
+        case "rightLeft":
+            return { alignment: vscode.StatusBarAlignment.Right, basePriority: 50, buttonsBeforeRocket: false };
+        case "rightRight":
+            return { alignment: vscode.StatusBarAlignment.Right, basePriority: 200, buttonsBeforeRocket: true };
+    }
+}
 exports.STORAGE_KEY = "copilotQuickPrompts.prompts";
 /** 默认预设提示词列表 */
 exports.DEFAULT_PROMPTS = [
@@ -92,6 +115,7 @@ class QuickPromptsProvider {
     storage;
     prompts;
     webviewView;
+    _configListener;
     /** 提示词变更事件（用于通知 extension 刷新状态栏等） */
     _onDidChangePrompts = new vscode.EventEmitter();
     onDidChangePrompts = this._onDidChangePrompts.event;
@@ -118,10 +142,14 @@ class QuickPromptsProvider {
         this.storage.update(exports.STORAGE_KEY, JSON.stringify(this.prompts));
     }
     /** 向 webview 发送更新后的数据 */
-    postPrompts() {
+    postState() {
+        const position = vscode.workspace
+            .getConfiguration()
+            .get(exports.CONFIG_KEY, "leftRight");
         this.webviewView?.webview.postMessage({
-            type: "updatePrompts",
+            type: "updateState",
             prompts: this.prompts,
+            position,
         });
     }
     resolveWebviewView(webviewView, _context, _token) {
@@ -131,12 +159,23 @@ class QuickPromptsProvider {
             localResourceRoots: [this.extensionUri],
         };
         webviewView.webview.html = this.getHtmlContent();
+        // 监听配置变更，同步更新 webview
+        webviewView.onDidDispose(() => {
+            this._configListener?.dispose();
+            this._configListener = undefined;
+        });
+        this._configListener?.dispose();
+        this._configListener = vscode.workspace.onDidChangeConfiguration((e) => {
+            if (e.affectsConfiguration(exports.CONFIG_KEY) && this.webviewView) {
+                this.postState();
+            }
+        });
         // 向 webview 发送初始数据
         webviewView.webview.onDidReceiveMessage(async (message) => {
             switch (message.type) {
                 case "ready":
                     // webview 就绪后发送数据
-                    this.postPrompts();
+                    this.postState();
                     break;
                 case "sendPrompt":
                     await this.sendPrompt(message.prompt, message.mode ?? "write");
@@ -147,7 +186,7 @@ class QuickPromptsProvider {
                 case "savePrompts":
                     this.prompts = message.prompts;
                     this.savePrompts();
-                    this.postPrompts();
+                    this.postState();
                     this._onDidChangePrompts.fire();
                     break;
                 case "toggleMode": {
@@ -155,9 +194,15 @@ class QuickPromptsProvider {
                     if (item) {
                         item.mode = item.mode === "direct" ? "write" : "direct";
                         this.savePrompts();
-                        this.postPrompts();
+                        this.postState();
                         this._onDidChangePrompts.fire();
                     }
+                    break;
+                }
+                case "updatePosition": {
+                    await vscode.workspace
+                        .getConfiguration()
+                        .update(exports.CONFIG_KEY, message.position, vscode.ConfigurationTarget.Global);
                     break;
                 }
             }
@@ -400,6 +445,39 @@ class QuickPromptsProvider {
       padding: 6px 0 2px;
       opacity: 0.7;
     }
+
+    /* --- 位置选择器 --- */
+    .position-section {
+      margin-top: 8px;
+      padding-top: 8px;
+    }
+    .position-options {
+      display: flex;
+      gap: 2px;
+      margin-top: 6px;
+    }
+    .pos-btn {
+      flex: 1;
+      text-align: center;
+      padding: 4px 2px;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      background: transparent;
+      color: var(--desc);
+      font-size: 10px;
+      cursor: pointer;
+      transition: all 0.15s;
+      line-height: 1.3;
+    }
+    .pos-btn:hover {
+      border-color: var(--btn-primary);
+      color: var(--fg);
+    }
+    .pos-btn.active {
+      background: var(--btn-primary);
+      color: var(--btn-primary-fg);
+      border-color: var(--btn-primary);
+    }
     .toast {
       display: none;
       position: fixed;
@@ -424,6 +502,15 @@ class QuickPromptsProvider {
     <div class="section-title"><span class="codicon codicon-sparkle" style="margin-right: 4px; font-size: 12px;"></span>快捷提示词</div>
     <div id="promptList"></div>
     <div class="hint">左键执行 · 右键附带代码 · <span class="codicon codicon-play"></span>切换模式 · <span class="codicon codicon-edit"></span>编辑</div>
+    <div class="position-section">
+      <div class="section-title"><span class="codicon codicon-arrow-left" style="margin-right: 4px; font-size: 12px;"></span>状态栏位置</div>
+      <div class="position-options" id="positionOptions">
+        <button class="pos-btn" data-pos="leftLeft">左左</button>
+        <button class="pos-btn" data-pos="leftRight">左右</button>
+        <button class="pos-btn" data-pos="rightLeft">右左</button>
+        <button class="pos-btn" data-pos="rightRight">右右</button>
+      </div>
+    </div>
     <div class="toast" id="toast"></div>
   </div>
 
@@ -629,11 +716,31 @@ class QuickPromptsProvider {
           .replace(/"/g,'&quot;').replace(/'/g,'&#039;');
       }
 
+      // ---- 位置选择 ----
+      const positionOptions = document.getElementById('positionOptions');
+
+      function renderPosition(position) {
+        positionOptions.querySelectorAll('.pos-btn').forEach(btn => {
+          btn.classList.toggle('active', btn.dataset.pos === position);
+        });
+      }
+
+      positionOptions.addEventListener('click', (e) => {
+        const btn = e.target.closest('.pos-btn');
+        if (btn && !btn.classList.contains('active')) {
+          const pos = btn.dataset.pos;
+          vscode.postMessage({ type: 'updatePosition', position: pos });
+          renderPosition(pos);
+          showToast('位置已更新');
+        }
+      });
+
       // ---- 通信 ----
       window.addEventListener('message', event => {
         const msg = event.data;
-        if (msg.type === 'updatePrompts') {
+        if (msg.type === 'updateState') {
           render(msg.prompts);
+          renderPosition(msg.position);
         }
       });
 
