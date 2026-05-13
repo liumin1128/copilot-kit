@@ -8,6 +8,7 @@ export type StatusBarPosition =
   | "rightRight";
 
 export const CONFIG_KEY = "copilotQuickPrompts.statusBarPosition";
+export const PROMPTS_CONFIG_KEY = "copilotQuickPrompts.prompts";
 
 /**
  * 根据配置获取状态栏对齐方式和优先级
@@ -98,27 +99,18 @@ export class QuickPromptsProvider implements vscode.WebviewViewProvider {
   readonly onDidChangePrompts: vscode.Event<void> =
     this._onDidChangePrompts.event;
 
-  constructor(
-    private readonly extensionUri: vscode.Uri,
-    private readonly storage: vscode.Memento,
-  ) {
+  constructor(private readonly extensionUri: vscode.Uri) {
     this.prompts = this.loadPrompts();
   }
 
-  /** 从全局存储加载提示词，保持存储中的顺序 */
+  /** 从 VS Code 配置加载提示词，保持存储中的顺序 */
   private loadPrompts(): PromptItem[] {
-    const saved = this.storage.get<string>(STORAGE_KEY);
-    let allItems: PromptItem[] = [];
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved) as PromptItem[];
-        allItems = parsed
-          .filter((p) => !DEFAULT_PROMPT_IDS.has(p.id))
-          .map((p) => ({ ...p, displayMode: p.displayMode || "icon" }));
-      } catch {
-        // ignore
-      }
-    }
+    const saved = vscode.workspace
+      .getConfiguration()
+      .get<PromptItem[]>(PROMPTS_CONFIG_KEY, []);
+    let allItems = saved
+      .filter((p) => !DEFAULT_PROMPT_IDS.has(p.id))
+      .map((p) => ({ ...p, displayMode: p.displayMode || "icon" }));
 
     // 确保内置项存在于列表中（首次加载时补充）
     const existingIds = new Set(allItems.map((p) => p.id));
@@ -131,9 +123,15 @@ export class QuickPromptsProvider implements vscode.WebviewViewProvider {
     return allItems;
   }
 
-  /** 保存提示词到全局存储 */
-  private savePrompts(): void {
-    this.storage.update(STORAGE_KEY, JSON.stringify(this.prompts));
+  /** 保存提示词到 VS Code 配置 */
+  private async savePrompts(): Promise<void> {
+    await vscode.workspace
+      .getConfiguration()
+      .update(
+        PROMPTS_CONFIG_KEY,
+        this.prompts,
+        vscode.ConfigurationTarget.Global,
+      );
   }
 
   /** 向 webview 发送更新后的数据 */
@@ -171,6 +169,13 @@ export class QuickPromptsProvider implements vscode.WebviewViewProvider {
     this._configListener = vscode.workspace.onDidChangeConfiguration((e) => {
       if (e.affectsConfiguration(CONFIG_KEY) && this.webviewView) {
         this.postState();
+      }
+      if (e.affectsConfiguration(PROMPTS_CONFIG_KEY)) {
+        this.prompts = this.loadPrompts();
+        if (this.webviewView) {
+          this.postState();
+        }
+        this._onDidChangePrompts.fire();
       }
     });
 

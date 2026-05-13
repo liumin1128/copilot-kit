@@ -2,21 +2,17 @@ import * as vscode from "vscode";
 import {
   QuickPromptsProvider,
   PromptItem,
-  STORAGE_KEY,
-  DEFAULT_PROMPTS,
   DEFAULT_PROMPT_IDS,
   BUILT_IN_PROMPTS,
   CONFIG_KEY,
+  PROMPTS_CONFIG_KEY,
   StatusBarPosition,
   getPositionConfig,
 } from "./quickPromptsProvider";
 
 export function activate(context: vscode.ExtensionContext) {
-  // 注册 Webview View Provider（传入 globalState 用于持久化）
-  const provider = new QuickPromptsProvider(
-    context.extensionUri,
-    context.globalState,
-  );
+  // 注册 Webview View Provider
+  const provider = new QuickPromptsProvider(context.extensionUri);
   context.subscriptions.push(
     vscode.window.registerWebviewViewProvider(
       "copilotQuickPrompts.main",
@@ -63,7 +59,10 @@ export function activate(context: vscode.ExtensionContext) {
   // 监听配置变更自动刷新状态栏
   context.subscriptions.push(
     vscode.workspace.onDidChangeConfiguration((e) => {
-      if (e.affectsConfiguration(CONFIG_KEY)) {
+      if (
+        e.affectsConfiguration(CONFIG_KEY) ||
+        e.affectsConfiguration(PROMPTS_CONFIG_KEY)
+      ) {
         rebuildStatusBar();
       }
     }),
@@ -88,7 +87,7 @@ function createStatusBarItems(
   }
   disposables.length = 0;
 
-  const prompts = loadPrompts(context.globalState);
+  const prompts = loadPrompts();
   const { alignment, basePriority } = getPositionConfig();
 
   // 统一遍历所有项（内置项 + 自定义项），跳过隐藏项
@@ -150,20 +149,14 @@ function createPromptButton(
   return statusBar;
 }
 
-/** 从全局存储加载提示词列表，保持存储中的顺序 */
-function loadPrompts(storage: vscode.Memento): PromptItem[] {
-  const saved = storage.get<string>(STORAGE_KEY);
-  let allItems: PromptItem[] = [];
-  if (saved) {
-    try {
-      const parsed = JSON.parse(saved) as PromptItem[];
-      allItems = parsed
-        .filter((p) => !DEFAULT_PROMPT_IDS.has(p.id))
-        .map((p) => ({ ...p, displayMode: p.displayMode || "icon" }));
-    } catch {
-      // ignore
-    }
-  }
+/** 从 VS Code 配置加载提示词列表，保持存储中的顺序 */
+function loadPrompts(): PromptItem[] {
+  const saved = vscode.workspace
+    .getConfiguration()
+    .get<PromptItem[]>(PROMPTS_CONFIG_KEY, []);
+  let allItems = saved
+    .filter((p) => !DEFAULT_PROMPT_IDS.has(p.id))
+    .map((p) => ({ ...p, displayMode: p.displayMode || "icon" }));
 
   // 确保内置项存在于列表中（首次加载时补充）
   const existingIds = new Set(allItems.map((p) => p.id));

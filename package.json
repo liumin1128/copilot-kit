@@ -35,6 +35,14 @@
           ],
           "default": "leftRight",
           "description": "Display position of status bar quick buttons"
+        },
+        "copilotQuickPrompts.prompts": {
+          "type": "array",
+          "default": [],
+          "description": "Custom quick prompts list (JSON array). Each item: { id, icon, label, prompt, color, mode, displayMode, hidden?, builtIn? }",
+          "items": {
+            "type": "object"
+          }
         }
       }
     },
