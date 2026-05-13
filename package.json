@@ -3,7 +3,7 @@
   "displayName": "Copilot Kit",
   "description": "Quick prompt buttons for Copilot Chat — one-click insert of preset prompts",
   "version": "0.1.0",
-  "publisher": "copilot-kit",
+  "publisher": "Copilot-kit",
   "repository": {
     "type": "git",
     "url": "https://github.com/liumin1128/copilot-kit"
