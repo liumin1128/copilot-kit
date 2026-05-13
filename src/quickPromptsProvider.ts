@@ -43,6 +43,7 @@ export interface PromptItem {
   color: string;
   mode: "direct" | "write";
   displayMode: "icon" | "text" | "both";
+  hidden?: boolean;
 }
 
 export const STORAGE_KEY = "copilotQuickPrompts.prompts";
@@ -333,6 +334,35 @@ export class QuickPromptsProvider implements vscode.WebviewViewProvider {
     }
     .prompt-card:hover .action-btn { display: flex; }
     .action-btn:hover { background: var(--hover); color: var(--fg); }
+
+    /* 上移/下移按钮 */
+    .move-btn {
+      display: none;
+      align-items: center;
+      justify-content: center;
+      width: 18px;
+      height: 18px;
+      border: none;
+      background: transparent;
+      cursor: pointer;
+      color: var(--desc);
+      font-size: 11px;
+      border-radius: 3px;
+      flex-shrink: 0;
+      transition: background 0.15s, color 0.15s;
+    }
+    .prompt-card:hover .move-btn { display: flex; }
+    .move-btn:hover { background: var(--hover); color: var(--fg); }
+    .move-btn:disabled { opacity: 0.3; cursor: default; }
+    .move-btn:disabled:hover { background: transparent; color: var(--desc); }
+
+    /* 隐藏项样式 */
+    .prompt-card.hidden-item {
+      opacity: 0.4;
+    }
+    .prompt-card.hidden-item:hover {
+      opacity: 1;
+    }
 
     /* --- 编辑弹窗 --- */
     .modal-overlay {
@@ -670,12 +700,22 @@ export class QuickPromptsProvider implements vscode.WebviewViewProvider {
       // ---- 渲染 ----
       function render(prompts) {
         promptsCache = prompts;
-        promptList.innerHTML = prompts.map(p => \`
-          <div class="prompt-card">
+        const total = prompts.length;
+        promptList.innerHTML = prompts.map((p, index) => \`
+          <div class="prompt-card\${p.hidden ? ' hidden-item' : ''}">
             <div class="prompt-body" data-id="\${p.id}">
               <span class="icon codicon codicon-\${p.icon}"></span>
               <span class="label">\${escapeHtml(p.label)}</span>
             </div>
+            <button class="move-btn\${index === 0 ? '' : ''}" data-id="\${p.id}" data-action="up" title="上移"\${index === 0 ? ' disabled' : ''}>
+              <span class="codicon codicon-chevron-up"></span>
+            </button>
+            <button class="move-btn" data-id="\${p.id}" data-action="down" title="下移"\${index === total - 1 ? ' disabled' : ''}>
+              <span class="codicon codicon-chevron-down"></span>
+            </button>
+            <button class="action-btn eye-btn" data-id="\${p.id}" title="\${p.hidden ? '显示' : '隐藏'}">
+              <span class="codicon codicon-\${p.hidden ? 'eye-closed' : 'eye'}"></span>
+            </button>
             <button class="action-btn edit-btn" data-id="\${p.id}" title="编辑">
               <span class="codicon codicon-edit"></span>
             </button>
@@ -709,6 +749,42 @@ export class QuickPromptsProvider implements vscode.WebviewViewProvider {
             const id = btn.dataset.id;
             const item = promptsCache.find(p => p.id === id);
             if (item) openEditModal(item);
+          });
+        });
+
+        // 上移/下移按钮
+        document.querySelectorAll('.move-btn').forEach(btn => {
+          btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const id = btn.dataset.id;
+            const action = btn.dataset.action;
+            const idx = promptsCache.findIndex(p => p.id === id);
+            if (idx < 0) return;
+            if (action === 'up' && idx > 0) {
+              const arr = [...promptsCache];
+              [arr[idx - 1], arr[idx]] = [arr[idx], arr[idx - 1]];
+              saveAndRender(arr);
+              showToast('已上移');
+            } else if (action === 'down' && idx < promptsCache.length - 1) {
+              const arr = [...promptsCache];
+              [arr[idx], arr[idx + 1]] = [arr[idx + 1], arr[idx]];
+              saveAndRender(arr);
+              showToast('已下移');
+            }
+          });
+        });
+
+        // 显示/隐藏按钮
+        document.querySelectorAll('.eye-btn').forEach(btn => {
+          btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const id = btn.dataset.id;
+            const updated = promptsCache.map(p =>
+              p.id === id ? { ...p, hidden: !p.hidden } : p
+            );
+            saveAndRender(updated);
+            const target = updated.find(p => p.id === id);
+            showToast(target?.hidden ? '已隐藏' : '已显示');
           });
         });
       }
@@ -903,6 +979,12 @@ export class QuickPromptsProvider implements vscode.WebviewViewProvider {
       function escapeHtml(text) {
         return text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
           .replace(/"/g,'&quot;').replace(/'/g,'&#039;');
+      }
+
+      /** 保存并重新渲染 */
+      function saveAndRender(prompts) {
+        promptsCache = prompts;
+        vscode.postMessage({ type: 'savePrompts', prompts });
       }
 
       // ---- 位置选择 ----

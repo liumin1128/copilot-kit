@@ -110,8 +110,9 @@ function createStatusBarItems(
   closeAllBtn.show();
   disposables.push(closeAllBtn);
 
-  // 自定义按钮
+  // 自定义按钮（排除隐藏项）
   for (const item of prompts) {
+    if (item.hidden) continue;
     const statusBar = createPromptButton(item, alignment, basePriority);
     disposables.push(statusBar);
   }
