@@ -14,18 +14,14 @@ export function activate(context: vscode.ExtensionContext) {
   // Register Webview View Provider
   const provider = new QuickPromptsProvider(context.extensionUri);
   context.subscriptions.push(
-    vscode.window.registerWebviewViewProvider(
-      "copilotQuickPrompts.main",
-      provider,
-      {
-        webviewOptions: { retainContextWhenHidden: true },
-      },
-    ),
+    vscode.window.registerWebviewViewProvider("copilotKit.main", provider, {
+      webviewOptions: { retainContextWhenHidden: true },
+    }),
   );
 
   // Register send prompt command
   const sendPromptCommand = vscode.commands.registerCommand(
-    "copilotQuickPrompts.sendPrompt",
+    "copilotKit.sendPrompt",
     async (promptText: string, mode: "direct" | "write" = "write") => {
       await sendToCopilotChat(promptText, mode);
     },
@@ -34,7 +30,7 @@ export function activate(context: vscode.ExtensionContext) {
 
   // Register smart chat command (no tab → create, has tab → split)
   const smartChatCommand = vscode.commands.registerCommand(
-    "copilotQuickPrompts.smartChatAction",
+    "copilotKit.smartChatAction",
     async () => {
       await smartChatAction();
     },
@@ -43,7 +39,7 @@ export function activate(context: vscode.ExtensionContext) {
 
   // Register close all tabs command
   const closeAllCommand = vscode.commands.registerCommand(
-    "copilotQuickPrompts.closeAll",
+    "copilotKit.closeAll",
     async () => {
       await closeAllTabs();
     },
@@ -100,9 +96,8 @@ function createStatusBarItems(
 
 /** Built-in item → command ID mapping */
 function getBuiltInCommand(item: PromptItem): string | undefined {
-  if (item.id === "builtin:smartChat")
-    return "copilotQuickPrompts.smartChatAction";
-  if (item.id === "builtin:closeAll") return "copilotQuickPrompts.closeAll";
+  if (item.id === "builtin:smartChat") return "copilotKit.smartChatAction";
+  if (item.id === "builtin:closeAll") return "copilotKit.closeAll";
   return undefined;
 }
 
@@ -140,7 +135,7 @@ function createPromptButton(
       `**${item.label}**  \n$(triangle-right) ${modeLabel}  \n$(triangle-right) Click to trigger`,
     );
     statusBar.command = {
-      command: "copilotQuickPrompts.sendPrompt",
+      command: "copilotKit.sendPrompt",
       title: "Send Prompt",
       arguments: [item.prompt, item.mode],
     };

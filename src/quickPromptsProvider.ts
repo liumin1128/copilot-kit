@@ -7,8 +7,8 @@ export type StatusBarPosition =
   | "rightLeft"
   | "rightRight";
 
-export const CONFIG_KEY = "copilotQuickPrompts.statusBarPosition";
-export const PROMPTS_CONFIG_KEY = "copilotQuickPrompts.prompts";
+export const CONFIG_KEY = "copilotKit.statusBarPosition";
+export const PROMPTS_CONFIG_KEY = "copilotKit.prompts";
 
 /**
  * Get status bar alignment and priority based on config
@@ -74,7 +74,7 @@ export const BUILT_IN_PROMPTS: PromptItem[] = [
   },
 ];
 
-export const STORAGE_KEY = "copilotQuickPrompts.prompts";
+export const STORAGE_KEY = "copilotKit.prompts";
 
 /** Default prompt IDs list, used to filter out old default items during migration */
 export const DEFAULT_PROMPT_IDS = new Set([
@@ -211,11 +211,7 @@ export class QuickPromptsProvider implements vscode.WebviewViewProvider {
     prompt: string,
     mode: "direct" | "write",
   ): Promise<void> {
-    await vscode.commands.executeCommand(
-      "copilotQuickPrompts.sendPrompt",
-      prompt,
-      mode,
-    );
+    await vscode.commands.executeCommand("copilotKit.sendPrompt", prompt, mode);
   }
 
   /** Send prompt with selected code from current editor */
@@ -235,7 +231,7 @@ export class QuickPromptsProvider implements vscode.WebviewViewProvider {
     }
 
     await vscode.commands.executeCommand(
-      "copilotQuickPrompts.sendPrompt",
+      "copilotKit.sendPrompt",
       fullPrompt,
       mode,
     );
@@ -882,8 +878,8 @@ export class QuickPromptsProvider implements vscode.WebviewViewProvider {
 
       // ---- Built-in command mapping ----
       const BUILT_IN_COMMANDS = {
-        'builtin:smartChat': 'copilotQuickPrompts.smartChatAction',
-        'builtin:closeAll': 'copilotQuickPrompts.closeAll',
+        'builtin:smartChat': 'copilotKit.smartChatAction',
+        'builtin:closeAll': 'copilotKit.closeAll',
       };
 
       // ---- Render ----

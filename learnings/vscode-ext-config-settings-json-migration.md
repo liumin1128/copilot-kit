@@ -7,7 +7,7 @@
 
 ### 1. `package.json` 定义配置项
 ```json
-"copilotQuickPrompts.prompts": {
+"copilotKit.prompts": {
   "type": "array",
   "default": [],
   "description": "...",

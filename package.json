@@ -1,9 +1,9 @@
 {
-  "name": "copilot-quick-prompts",
-  "displayName": "Copilot Quick Prompts",
+  "name": "copilot-kit",
+  "displayName": "Copilot Kit",
   "description": "Quick prompt buttons for Copilot Chat — one-click insert of preset prompts",
   "version": "0.1.0",
-  "publisher": "copilot-quick-prompts",
+  "publisher": "copilot-kit",
   "engines": {
     "vscode": "^1.93.0"
   },
@@ -17,9 +17,9 @@
   "main": "./dist/extension.js",
   "contributes": {
     "configuration": {
-      "title": "Copilot Quick Prompts",
+      "title": "Copilot Kit",
       "properties": {
-        "copilotQuickPrompts.statusBarPosition": {
+        "copilotKit.statusBarPosition": {
           "type": "string",
           "enum": [
             "leftLeft",
@@ -36,7 +36,7 @@
           "default": "leftRight",
           "description": "Display position of status bar quick buttons"
         },
-        "copilotQuickPrompts.prompts": {
+        "copilotKit.prompts": {
           "type": "array",
           "default": [],
           "description": "Custom quick prompts list (JSON array). Each item: { id, icon, label, prompt, color, mode, displayMode, hidden?, builtIn? }",
@@ -48,24 +48,24 @@
     },
     "commands": [
       {
-        "command": "copilotQuickPrompts.sendPrompt",
+        "command": "copilotKit.sendPrompt",
         "title": "Send quick prompt to Copilot Chat"
       }
     ],
     "viewsContainers": {
       "activitybar": [
         {
-          "id": "copilot-quick-prompts",
+          "id": "copilot-kit",
           "title": "Quick Prompts",
           "icon": "$(rocket)"
         }
       ]
     },
     "views": {
-      "copilot-quick-prompts": [
+      "copilot-kit": [
         {
           "type": "webview",
-          "id": "copilotQuickPrompts.main",
+          "id": "copilotKit.main",
           "name": "Quick Prompts"
         }
       ]

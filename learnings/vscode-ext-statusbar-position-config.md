@@ -2,7 +2,7 @@
 
 ## 背景
 
-为 Copilot Quick Prompts 扩展的状态栏按钮增加位置配置选项。
+为 Copilot Kit 扩展的状态栏按钮增加位置配置选项。
 
 ## 关键经验
 
@@ -23,7 +23,7 @@
 在 `package.json` 的 `contributes.configuration` 中定义，支持 `enum` + `enumDescriptions`：
 
 ```json
-"copilotQuickPrompts.statusBarPosition": {
+"copilotKit.statusBarPosition": {
   "type": "string",
   "enum": ["leftAfterIcon", "left", "center", "right", "rightAfterIcon"],
   "enumDescriptions": ["左侧，在默认图标右边", "左侧靠边", "居中", "右侧", "右侧，在默认图标右边"],

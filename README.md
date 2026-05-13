@@ -1,4 +1,4 @@
-# Copilot Quick Prompts 🚀
+# Copilot Kit 🚀
 
 One-click quick prompt buttons for VS Code Copilot Chat — eliminate repetitive typing of common prompts.
 
@@ -63,7 +63,7 @@ Three display modes are supported, configurable per button in the edit modal:
 
 ### 📐 Status Bar Position
 
-Adjust the position of buttons in the status bar via the VS Code setting `copilotQuickPrompts.statusBarPosition`:
+Adjust the position of buttons in the status bar via the VS Code setting `copilotKit.statusBarPosition`:
 
 | Value | Alignment | Priority |
 |-------|-----------|----------|
@@ -78,7 +78,7 @@ Adjust the position of buttons in the status bar via the VS Code setting `copilo
 
 ```bash
 git clone <repo-url>
-cd copilot-quick-prompts
+cd copilot-kit
 npm install
 npm run compile
 ```
@@ -97,12 +97,12 @@ Press `F5` to launch the Extension Development Host for debugging.
 
 ### VS Code Settings
 
-Open VS Code settings (`Cmd+,`), search for `Copilot Quick Prompts`, or directly edit `settings.json`:
+Open VS Code settings (`Cmd+,`), search for `Copilot Kit`, or directly edit `settings.json`:
 
 ```json
 {
-  "copilotQuickPrompts.statusBarPosition": "leftRight",
-  "copilotQuickPrompts.prompts": [
+  "copilotKit.statusBarPosition": "leftRight",
+  "copilotKit.prompts": [
     {
       "id": "custom-review",
       "icon": "code-review",
@@ -128,14 +128,14 @@ Open VS Code settings (`Cmd+,`), search for `Copilot Quick Prompts`, or directly
 
 | Command | Description |
 |---------|-------------|
-| `copilotQuickPrompts.sendPrompt` | Send prompt to Copilot Chat |
-| `copilotQuickPrompts.smartChatAction` | Smart chat operation |
-| `copilotQuickPrompts.closeAll` | Close all tabs and sidebar |
+| `copilotKit.sendPrompt` | Send prompt to Copilot Chat |
+| `copilotKit.smartChatAction` | Smart chat operation |
+| `copilotKit.closeAll` | Close all tabs and sidebar |
 
 ## Project Structure
 
 ```
-copilot-quick-prompts/
+copilot-kit/
 ├── package.json              # Extension manifest and configuration
 ├── tsconfig.json             # TypeScript configuration
 ├── src/
