@@ -54,15 +54,15 @@ function activate(context) {
 /** 创建状态栏快捷按钮（每个预设提示词一个图标按钮） */
 function createStatusBarItems(context) {
     const prompts = loadPrompts(context.globalState);
-    // 添加一个分组标签
-    const label = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, -101);
+    // 添加一个分组标签（放在最左边）
+    const label = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 100);
     label.text = "$(rocket)";
     label.name = "快捷提示";
     label.tooltip = "Copilot 快捷提示词";
     label.show();
     context.subscriptions.push(label);
     prompts.forEach((item) => {
-        const statusBar = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, -100);
+        const statusBar = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 99);
         statusBar.name = `快捷提示: ${item.label}`;
         statusBar.text = `${item.icon}`;
         statusBar.tooltip = new vscode.MarkdownString(`**${item.label}**  \n$(triangle-right) ${item.mode === "direct" ? "⚡ 直接执行" : "✍️ 写入输入框"}  \n$(triangle-right) 点击触发`);

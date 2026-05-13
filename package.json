@@ -12,7 +12,7 @@
     "Other"
   ],
   "activationEvents": [
-    "onView:copilotQuickPrompts.main"
+    "onStartupFinished"
   ],
   "main": "./dist/extension.js",
   "contributes": {

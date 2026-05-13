@@ -39,10 +39,10 @@ export function activate(context: vscode.ExtensionContext) {
 function createStatusBarItems(context: vscode.ExtensionContext): void {
   const prompts = loadPrompts(context.globalState);
 
-  // 添加一个分组标签
+  // 添加一个分组标签（放在最左边）
   const label = vscode.window.createStatusBarItem(
-    vscode.StatusBarAlignment.Right,
-    -101,
+    vscode.StatusBarAlignment.Left,
+    100,
   );
   label.text = "$(rocket)";
   label.name = "快捷提示";
@@ -52,8 +52,8 @@ function createStatusBarItems(context: vscode.ExtensionContext): void {
 
   prompts.forEach((item) => {
     const statusBar = vscode.window.createStatusBarItem(
-      vscode.StatusBarAlignment.Right,
-      -100,
+      vscode.StatusBarAlignment.Left,
+      99,
     );
     statusBar.name = `快捷提示: ${item.label}`;
     statusBar.text = `${item.icon}`;
