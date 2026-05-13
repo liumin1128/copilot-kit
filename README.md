@@ -2,6 +2,10 @@
 
 One-click quick prompt buttons for VS Code Copilot Chat — eliminate repetitive typing of common prompts.
 
+## Screenshots
+
+![Copilot Kit Sidebar](https://github.com/liumin1128/copilot-kit/blob/main/image.png?raw=true)
+
 ## Overview
 
 Provides customizable quick prompt buttons in the **status bar** and **sidebar panel** with the following core capabilities:
