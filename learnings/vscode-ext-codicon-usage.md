@@ -52,22 +52,42 @@ private getHtmlContent(): string {
 }
 ```
 
-### 4. 常用 Codicon 名称映射
-| 用途 | Codicon 名称 |
-|------|-------------|
-| 搜索/审查 | search |
-| 文档/阅读 | book |
-| 测试 | beaker |
-| 优化/闪电 | zap |
-| 注释/评论 | comment |
-| 同步/重构 | sync |
-| 魔法/AI | sparkle |
-| 播放/执行 | play |
-| 编辑 | edit |
-| 代码 | code |
-| 火箭 | rocket |
-| 眼睛/查看 | eye |
-| 灯泡/建议 | lightbulb |
+### 4. 图标选择器实现方案
+
+**问题**：Webview 中需要让用户选择 codicon 图标，如何展示全部 600+ 个图标？
+
+**推荐方案**：将所有 codicon 名称嵌入 JS 数组 + 搜索过滤
+
+```
+// ❌ 不推荐：只展示几十个常用图标，用户找不到想要的
+const COMMON_ICONS = ['search', 'book', 'beaker', ...]; // 35 个
+
+// ✅ 推荐：嵌入完整列表 + 搜索输入框过滤
+const ALL_CODICONS = ['account', 'add', ...]; // 649 个
+let iconFilter = '';
+
+// 根据搜索词过滤
+function renderIconSuggestions(selected) {
+  const filter = iconFilter.toLowerCase();
+  const filtered = filter
+    ? ALL_CODICONS.filter(name => name.includes(filter))
+    : ALL_CODICONS;
+  // 渲染...
+}
+```
+
+**关键要点**：
+- 完整 codicon 列表约 649 个图标名称，纯文本仅 ~15KB，不影响 VSIX 包体积
+- codicon 字体文件（~80KB）已通过 CDN 加载，无论展示多少图标都不会增加额外网络开销
+- 必须配合**搜索输入框**，否则用户难以从 600+ 个图标中找到目标
+- 图标网格容器需设置 `max-height` + `overflow-y: auto`，避免撑爆弹窗
+- 可用 `curl` 从 CDN 的 CSS 中提取完整图标名：
+  ```bash
+  curl -s "https://cdn.jsdelivr.net/npm/@vscode/codicons@0/dist/codicon.css" \
+    | grep -o '\.codicon-[a-zA-Z0-9_-]*:before' \
+    | sed 's/\.codicon-//;s/:before//' | sort -u
+  ```
+- 无需额外网络请求（connect-src），所有图标名已嵌入 HTML，符合最低权限原则
 
 ### 6. Webview 编辑后同步状态栏
 Webview 中编辑了数据（如修改图标名称）后，状态栏不会自动刷新。需要通过事件机制同步：

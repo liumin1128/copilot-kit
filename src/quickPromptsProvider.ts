@@ -44,7 +44,33 @@ export interface PromptItem {
   mode: "direct" | "write";
   displayMode: "icon" | "text" | "both";
   hidden?: boolean;
+  /** 是否为内置项（智能聊天、关闭所有），内置项不可编辑 */
+  builtIn?: boolean;
 }
+
+/** 内置特殊按钮定义 */
+export const BUILT_IN_PROMPTS: PromptItem[] = [
+  {
+    id: "builtin:smartChat",
+    icon: "comment-discussion",
+    label: "智能聊天",
+    prompt: "",
+    color: "#4fc3f7",
+    mode: "direct",
+    displayMode: "icon",
+    builtIn: true,
+  },
+  {
+    id: "builtin:closeAll",
+    icon: "close-all",
+    label: "关闭所有",
+    prompt: "",
+    color: "#e53935",
+    mode: "direct",
+    displayMode: "icon",
+    builtIn: true,
+  },
+];
 
 export const STORAGE_KEY = "copilotQuickPrompts.prompts";
 
@@ -78,20 +104,30 @@ export class QuickPromptsProvider implements vscode.WebviewViewProvider {
     this.prompts = this.loadPrompts();
   }
 
-  /** 从全局存储加载提示词 */
+  /** 从全局存储加载提示词，保持存储中的顺序 */
   private loadPrompts(): PromptItem[] {
     const saved = this.storage.get<string>(STORAGE_KEY);
+    let allItems: PromptItem[] = [];
     if (saved) {
       try {
         const parsed = JSON.parse(saved) as PromptItem[];
-        return parsed
+        allItems = parsed
           .filter((p) => !DEFAULT_PROMPT_IDS.has(p.id))
           .map((p) => ({ ...p, displayMode: p.displayMode || "icon" }));
       } catch {
         // ignore
       }
     }
-    return DEFAULT_PROMPTS.slice();
+
+    // 确保内置项存在于列表中（首次加载时补充）
+    const existingIds = new Set(allItems.map((p) => p.id));
+    for (const builtIn of BUILT_IN_PROMPTS) {
+      if (!existingIds.has(builtIn.id)) {
+        allItems.push({ ...builtIn });
+      }
+    }
+
+    return allItems;
   }
 
   /** 保存提示词到全局存储 */
@@ -162,6 +198,11 @@ export class QuickPromptsProvider implements vscode.WebviewViewProvider {
           this.postState();
           this._onDidChangePrompts.fire();
           break;
+
+        case "executeCommand": {
+          await vscode.commands.executeCommand(message.command);
+          break;
+        }
 
         case "updatePosition": {
           await vscode.workspace
@@ -648,8 +689,9 @@ export class QuickPromptsProvider implements vscode.WebviewViewProvider {
       <label>标题</label>
       <input type="text" id="editLabel" placeholder="按钮显示名称" />
       <label>图标（codicon 名称）</label>
-      <input type="text" id="editIcon" placeholder="例如：search, book, beaker, zap..." />
-      <div style="display:flex; gap:4px; flex-wrap:wrap; margin-top:6px;" id="iconSuggestions"></div>
+      <input type="text" id="editIcon" placeholder="输入图标名称搜索..." />
+      <input type="text" id="iconFilter" placeholder="搜索图标..." style="margin-top:4px; font-size:12px; padding:4px 8px;" />
+      <div style="display:flex; gap:4px; flex-wrap:wrap; margin-top:6px; max-height:180px; overflow-y:auto; padding:2px 0;" id="iconSuggestions"></div>
       <label>显示方式</label>
       <div class="display-mode-options" id="displayModeOptions">
         <button class="mode-option active" data-mode="icon">仅图标</button>
@@ -694,8 +736,17 @@ export class QuickPromptsProvider implements vscode.WebviewViewProvider {
       let editingId = null;
       let promptsCache = [];
 
-      // 常用 codicon 列表
-      const COMMON_ICONS = ['search', 'book', 'beaker', 'zap', 'comment', 'sync', 'eye', 'lightbulb', 'sparkle', 'code', 'rocket', 'pulse', 'star', 'heart', 'tools', 'wrench', 'flame', 'check', 'info', 'question', 'warning', 'error', 'lock', 'globe', 'fire', 'key', 'pin', 'tag', 'trash', 'organization', 'person', 'graph', 'note', 'quote'];
+      // 完整的 codicon 列表（自动从 codicon.css 提取，共 649 个）
+      const ALL_CODICONS = [
+        'account','activate-breakpoints','add','add-small','agent','alert','archive','array','arrow-both','arrow-circle-down','arrow-circle-left','arrow-circle-right','arrow-circle-up','arrow-down','arrow-left','arrow-right','arrow-small-down','arrow-small-left','arrow-small-right','arrow-small-up','arrow-swap','arrow-up','ask','attach','azure','azure-devops','beaker','beaker-stop','bell','bell-dot','bell-slash','bell-slash-dot','blank','bold','book','bookmark','bracket','bracket-dot','bracket-error','briefcase','broadcast','browser','bug','build','calendar','call-incoming','call-outgoing','case-sensitive','chat-sparkle','chat-sparkle-error','chat-sparkle-warning','check','check-all','checklist','chevron-down','chevron-left','chevron-right','chevron-up','chip','chrome-close','chrome-maximize','chrome-minimize','chrome-restore','circle','circle-filled','circle-large','circle-large-filled','circle-large-outline','circle-outline','circle-slash','circle-small','circle-small-filled','circuit-board','claude','clear-all','clippy','clock','clockface','clone','close','close-all','close-dirty','cloud','cloud-download','cloud-small','cloud-upload','code','code-oss','code-review','coffee','collapse-all','collection','collection-small','color-mode','combine','comment','comment-add','comment-discussion','comment-discussion-quote','comment-discussion-sparkle','comment-draft','comment-unresolved','compare-changes','compass','compass-active','compass-dot','console','copilot','copilot-blocked','copilot-error','copilot-in-progress','copilot-large','copilot-not-connected','copilot-snooze','copilot-success','copilot-unavailable','copilot-warning','copilot-warning-large','copy','coverage','credit-card','cursor','dash','dashboard','database','debug','debug-all','debug-alt','debug-alt-small','debug-breakpoint','debug-breakpoint-conditional','debug-breakpoint-conditional-disabled','debug-breakpoint-conditional-unverified','debug-breakpoint-data','debug-breakpoint-data-disabled','debug-breakpoint-data-unverified','debug-breakpoint-disabled','debug-breakpoint-function','debug-breakpoint-function-disabled','debug-breakpoint-function-unverified','debug-breakpoint-log','debug-breakpoint-log-disabled','debug-breakpoint-log-unverified','debug-breakpoint-unsupported','debug-breakpoint-unverified','debug-connected','debug-console','debug-continue','debug-continue-small','debug-coverage','debug-disconnect','debug-hint','debug-line-by-line','debug-pause','debug-rerun','debug-restart','debug-restart-frame','debug-reverse-continue','debug-stackframe','debug-stackframe-active','debug-stackframe-dot','debug-stackframe-focused','debug-start','debug-step-back','debug-step-into','debug-step-out','debug-step-over','debug-stop','desktop-download','device-camera','device-camera-video','device-desktop','device-mobile','diff','diff-added','diff-ignored','diff-modified','diff-multiple','diff-removed','diff-renamed','diff-sidebyside','diff-single','discard','download','edit','edit-code','edit-session','edit-sparkle','editor-layout','ellipsis','empty-window','eraser','error','error-small','exclude','expand-all','export','extensions','extensions-large','eye','eye-closed','eye-unwatch','eye-watch','feedback','file','file-add','file-binary','file-code','file-directory','file-directory-create','file-media','file-pdf','file-submodule','file-symlink-directory','file-symlink-file','file-text','file-zip','files','filter','filter-filled','flag','flame','fold','fold-down','fold-horizontal','fold-horizontal-filled','fold-up','fold-vertical','fold-vertical-filled','folder','folder-active','folder-library','folder-opened','forward','game','gather','gear','gift','gist','gist-fork','gist-new','gist-private','gist-secret','git-branch','git-branch-changes','git-branch-conflicts','git-branch-create','git-branch-delete','git-branch-staged-changes','git-commit','git-compare','git-fetch','git-fork-private','git-merge','git-pull-request','git-pull-request-abandoned','git-pull-request-assignee','git-pull-request-closed','git-pull-request-create','git-pull-request-done','git-pull-request-draft','git-pull-request-go-to-changes','git-pull-request-label','git-pull-request-milestone','git-pull-request-new-changes','git-pull-request-reviewer','git-stash','git-stash-apply','git-stash-pop','github','github-action','github-alt','github-inverted','github-project','globe','go-to-editing-session','go-to-file','go-to-search','grabber','graph','graph-left','graph-line','graph-scatter','gripper','group-by-ref-type','heart','heart-filled','history','home','horizontal-rule','hubot','inbox','indent','index-zero','info','insert','inspect','issue-closed','issue-draft','issue-opened','issue-reopened','issues','italic','jersey','json','kebab-horizontal','kebab-vertical','key','keyboard','keyboard-tab','keyboard-tab-above','keyboard-tab-below','law','layers','layers-active','layers-dot','layout','layout-activitybar-left','layout-activitybar-right','layout-centered','layout-menubar','layout-panel','layout-panel-center','layout-panel-dock','layout-panel-justify','layout-panel-left','layout-panel-off','layout-panel-right','layout-sidebar-left','layout-sidebar-left-dock','layout-sidebar-left-off','layout-sidebar-right','layout-sidebar-right-dock','layout-sidebar-right-off','layout-statusbar','library','light-bulb','lightbulb','lightbulb-autofix','lightbulb-empty','lightbulb-sparkle','link','link-external','list-filter','list-flat','list-ordered','list-selection','list-tree','list-unordered','live-share','loading','location','lock','lock-small','log-in','log-out','logo-github','magnet','mail','mail-read','mail-reply','map','map-filled','map-horizontal','map-horizontal-filled','map-vertical','map-vertical-filled','mark-github','markdown','mcp','megaphone','mention','menu','merge','merge-into','mic','mic-filled','microscope','milestone','mirror','mirror-private','mirror-public','more','mortar-board','move','multiple-windows','music','mute','new-collection','new-file','new-folder','new-session','newline','no-newline','note','notebook','notebook-template','octoface','open-in-product','open-in-window','open-preview','openai','organization','organization-filled','organization-outline','output','package','paintcan','pass','pass-filled','pencil','percentage','person','person-add','person-filled','person-follow','person-outline','piano','pie-chart','pin','pinned','pinned-dirty','play','play-circle','plug','plus','preserve-case','preview','primitive-dot','primitive-square','project','pulse','python','question','quote','quotes','radio-tower','reactions','record','record-keys','record-small','redo','references','refresh','regex','remote','remote-explorer','remove','remove-close','remove-small','rename','repl','replace','replace-all','reply','repo','repo-clone','repo-create','repo-delete','repo-fetch','repo-force-push','repo-forked','repo-pinned','repo-pull','repo-push','repo-selected','repo-sync','report','request-changes','robot','rocket','root-folder','root-folder-opened','rss','ruby','run','run-above','run-all','run-all-coverage','run-below','run-coverage','run-errors','run-with-deps','save','save-all','save-as','screen-cut','screen-full','screen-normal','search','search-fuzzy','search-large','search-save','search-sparkle','search-stop','selection','send','send-to-remote-agent','server','server-environment','server-process','session-in-progress','settings','settings-gear','share','shield','sign-in','sign-out','skip','smiley','snake','sort-percentage','sort-precedence','source-control','sparkle','sparkle-filled','split-horizontal','split-vertical','squirrel','star','star-add','star-delete','star-empty','star-full','star-half','stop','stop-circle','strikethrough','surround-with','symbol-array','symbol-boolean','symbol-class','symbol-color','symbol-constant','symbol-constructor','symbol-enum','symbol-enum-member','symbol-event','symbol-field','symbol-file','symbol-folder','symbol-function','symbol-interface','symbol-key','symbol-keyword','symbol-method','symbol-method-arrow','symbol-misc','symbol-module','symbol-namespace','symbol-null','symbol-number','symbol-numeric','symbol-object','symbol-operator','symbol-package','symbol-parameter','symbol-property','symbol-reference','symbol-ruler','symbol-snippet','symbol-string','symbol-struct','symbol-structure','symbol-text','symbol-type-parameter','symbol-unit','symbol-value','symbol-variable','sync','sync-ignored','table','tag','tag-add','tag-remove','target','tasklist','telescope','terminal','terminal-bash','terminal-cmd','terminal-debian','terminal-decoration-error','terminal-decoration-incomplete','terminal-decoration-mark','terminal-decoration-success','terminal-git-bash','terminal-linux','terminal-powershell','terminal-tmux','terminal-ubuntu','text-size','thinking','three-bars','thumbsdown','thumbsdown-filled','thumbsup','thumbsup-filled','tools','trash','trashcan','triangle-down','triangle-left','triangle-right','triangle-up','twitter','type-hierarchy','type-hierarchy-sub','type-hierarchy-super','unarchive','unfold','ungroup-by-ref-type','unlock','unmute','unverified','variable','variable-group','verified','verified-filled','versions','vm','vm-active','vm-connect','vm-outline','vm-pending','vm-running','vm-small','vr','vscode','vscode-insiders','wand','warning','watch','whitespace','whole-word','window','window-active','word-wrap','workspace-trusted','workspace-unknown','workspace-untrusted','worktree','worktree-small','wrench','wrench-subaction','x','zap','zoom-in','zoom-out'
+      ];
+      let iconFilter = '';
+
+      // ---- 内置项命令映射 ----
+      const BUILT_IN_COMMANDS = {
+        'builtin:smartChat': 'copilotQuickPrompts.smartChatAction',
+        'builtin:closeAll': 'copilotQuickPrompts.closeAll',
+      };
 
       // ---- 渲染 ----
       function render(prompts) {
@@ -703,7 +754,7 @@ export class QuickPromptsProvider implements vscode.WebviewViewProvider {
         const total = prompts.length;
         promptList.innerHTML = prompts.map((p, index) => \`
           <div class="prompt-card\${p.hidden ? ' hidden-item' : ''}">
-            <div class="prompt-body" data-id="\${p.id}">
+            <div class="prompt-body" data-id="\${p.id}" data-builtin="\${!!p.builtIn}">
               <span class="icon codicon codicon-\${p.icon}"></span>
               <span class="label">\${escapeHtml(p.label)}</span>
             </div>
@@ -716,9 +767,9 @@ export class QuickPromptsProvider implements vscode.WebviewViewProvider {
             <button class="action-btn eye-btn" data-id="\${p.id}" title="\${p.hidden ? '显示' : '隐藏'}">
               <span class="codicon codicon-\${p.hidden ? 'eye-closed' : 'eye'}"></span>
             </button>
-            <button class="action-btn edit-btn" data-id="\${p.id}" title="编辑">
+            \${p.builtIn ? '' : \`<button class="action-btn edit-btn" data-id="\${p.id}" title="编辑">
               <span class="codicon codicon-edit"></span>
-            </button>
+            </button>\`}
           </div>
         \`).join('');
 
@@ -728,8 +779,14 @@ export class QuickPromptsProvider implements vscode.WebviewViewProvider {
             const id = el.dataset.id;
             const item = promptsCache.find(p => p.id === id);
             if (item) {
-              vscode.postMessage({ type: 'sendPrompt', prompt: item.prompt, mode: item.mode });
-              showToast(item.mode === 'direct' ? '已发送执行' : '已填入输入框');
+              if (item.builtIn) {
+                const cmd = BUILT_IN_COMMANDS[id];
+                if (cmd) vscode.postMessage({ type: 'executeCommand', command: cmd });
+                showToast('正在执行');
+              } else {
+                vscode.postMessage({ type: 'sendPrompt', prompt: item.prompt, mode: item.mode });
+                showToast(item.mode === 'direct' ? '已发送执行' : '已填入输入框');
+              }
             }
           });
           el.addEventListener('contextmenu', (e) => {
@@ -737,8 +794,14 @@ export class QuickPromptsProvider implements vscode.WebviewViewProvider {
             const id = el.dataset.id;
             const item = promptsCache.find(p => p.id === id);
             if (item) {
-              vscode.postMessage({ type: 'sendPromptWithEditor', prompt: item.prompt, mode: item.mode });
-              showToast('已附带选中代码' + (item.mode === 'direct' ? '发送' : '填入'));
+              if (item.builtIn) {
+                const cmd = BUILT_IN_COMMANDS[id];
+                if (cmd) vscode.postMessage({ type: 'executeCommand', command: cmd });
+                showToast('正在执行');
+              } else {
+                vscode.postMessage({ type: 'sendPromptWithEditor', prompt: item.prompt, mode: item.mode });
+                showToast('已附带选中代码' + (item.mode === 'direct' ? '发送' : '填入'));
+              }
             }
           });
         });
@@ -789,9 +852,13 @@ export class QuickPromptsProvider implements vscode.WebviewViewProvider {
         });
       }
 
-      /** 渲染图标建议列表 */
+      /** 渲染图标建议列表（支持搜索过滤） */
       function renderIconSuggestions(selected) {
-        iconSuggestions.innerHTML = COMMON_ICONS.map(name =>
+        const filter = iconFilter.toLowerCase().trim();
+        const filtered = filter
+          ? ALL_CODICONS.filter(name => name.includes(filter))
+          : ALL_CODICONS;
+        iconSuggestions.innerHTML = filtered.map(name =>
           \`<span class="icon-option\${name === selected ? ' active' : ''}" data-icon="\${name}" title="\${name}">
             <span class="codicon codicon-\${name}"></span>
           </span>\`
@@ -807,6 +874,9 @@ export class QuickPromptsProvider implements vscode.WebviewViewProvider {
         editLabel.value = item.label || '';
         editIcon.value = item.icon || 'sparkle';
         editPrompt.value = item.prompt || '';
+        // 重置图标搜索
+        iconFilter = '';
+        iconFilterInput.value = '';
         renderIconSuggestions(editIcon.value);
         // 设置显示方式
         const mode = item.displayMode || 'icon';
@@ -855,6 +925,13 @@ export class QuickPromptsProvider implements vscode.WebviewViewProvider {
 
       // 图标输入实时预览
       editIcon.addEventListener('input', updateIconPreview);
+
+      // 图标搜索过滤
+      const iconFilterInput = document.getElementById('iconFilter');
+      iconFilterInput.addEventListener('input', () => {
+        iconFilter = iconFilterInput.value;
+        renderIconSuggestions(editIcon.value.trim() || 'sparkle');
+      });
 
       // 图标建议点击选择
       iconSuggestions.addEventListener('click', (e) => {
