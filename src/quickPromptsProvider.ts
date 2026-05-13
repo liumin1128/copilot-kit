@@ -54,7 +54,7 @@ export const BUILT_IN_PROMPTS: PromptItem[] = [
   {
     id: "builtin:smartChat",
     icon: "comment-discussion",
-    label: "智能聊天",
+    label: "New Chat Tab",
     prompt: "",
     color: "#4fc3f7",
     mode: "direct",
@@ -64,7 +64,7 @@ export const BUILT_IN_PROMPTS: PromptItem[] = [
   {
     id: "builtin:closeAll",
     icon: "close-all",
-    label: "关闭所有",
+    label: "Close All Tabs",
     prompt: "",
     color: "#e53935",
     mode: "direct",
@@ -256,7 +256,7 @@ export class QuickPromptsProvider implements vscode.WebviewViewProvider {
 
   private getHtmlContent(): string {
     return `<!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -837,7 +837,7 @@ export class QuickPromptsProvider implements vscode.WebviewViewProvider {
     <!-- 头部 -->
     <div class="section-header">
       <span class="codicon codicon-sparkle"></span>
-      <span class="section-title">快捷提示词</span>
+      <span class="section-title">Quick Prompts</span>
       <span class="section-badge" id="countBadge">0</span>
     </div>
 
@@ -846,21 +846,21 @@ export class QuickPromptsProvider implements vscode.WebviewViewProvider {
 
     <!-- 底部操作区 -->
     <div class="footer-actions">
-      <button class="add-btn" id="addBtn"><span class="codicon codicon-plus"></span> 添加快捷按钮</button>
-      <div class="hint">单击执行  ·  右键附带代码</div>
+      <button class="add-btn" id="addBtn"><span class="codicon codicon-plus"></span> Add Shortcut</button>
+      <div class="hint">Click to execute  ·  Right-click with code</div>
     </div>
 
     <!-- 设置：状态栏位置 -->
     <div class="settings-section">
       <div class="settings-header">
         <span class="codicon codicon-settings-gear"></span>
-        <span class="settings-title">状态栏位置</span>
+        <span class="settings-title">Status Bar Position</span>
       </div>
       <div class="position-options" id="positionOptions">
-        <button class="pos-btn" data-pos="leftLeft">左左</button>
-        <button class="pos-btn" data-pos="leftRight">左右</button>
-        <button class="pos-btn" data-pos="rightLeft">右左</button>
-        <button class="pos-btn" data-pos="rightRight">右右</button>
+        <button class="pos-btn" data-pos="leftLeft">L L</button>
+        <button class="pos-btn" data-pos="leftRight">L R</button>
+        <button class="pos-btn" data-pos="rightLeft">R L</button>
+        <button class="pos-btn" data-pos="rightRight">R R</button>
       </div>
     </div>
 
@@ -872,10 +872,10 @@ export class QuickPromptsProvider implements vscode.WebviewViewProvider {
   <div class="confirm-overlay" id="confirmOverlay">
     <div class="confirm-box">
       <span class="codicon codicon-trash confirm-icon"></span>
-      <p>确定要删除该快捷按钮吗？</p>
+      <p>Are you sure you want to delete this shortcut?</p>
       <div class="confirm-actions">
-        <button class="btn-cancel" id="confirmCancel">取消</button>
-        <button class="btn-danger" id="confirmDelete">确认删除</button>
+        <button class="btn-cancel" id="confirmCancel">Cancel</button>
+        <button class="btn-danger" id="confirmDelete">Delete</button>
       </div>
     </div>
   </div>
@@ -883,30 +883,30 @@ export class QuickPromptsProvider implements vscode.WebviewViewProvider {
   <!-- 编辑弹窗 -->
   <div class="modal-overlay" id="modalOverlay">
     <div class="modal">
-      <h3><span class="codicon codicon-edit"></span> <span id="modalTitle">编辑提示词</span></h3>
-      <label>标题</label>
-      <input type="text" id="editLabel" placeholder="按钮显示名称" />
-      <label>图标（codicon 名称）</label>
-      <input type="text" id="editIcon" placeholder="输入图标名称搜索..." />
-      <input type="text" id="iconFilter" placeholder="搜索图标..." style="margin-top:4px; font-size:12px; padding:4px 8px;" />
+      <h3><span class="codicon codicon-edit"></span> <span id="modalTitle">Edit Prompt</span></h3>
+      <label>Label</label>
+      <input type="text" id="editLabel" placeholder="Button label" />
+      <label>Icon (codicon name)</label>
+      <input type="text" id="editIcon" placeholder="Type icon name to search..." />
+      <input type="text" id="iconFilter" placeholder="Search icon..." style="margin-top:4px; font-size:12px; padding:4px 8px;" />
       <div style="display:flex; gap:4px; flex-wrap:wrap; margin-top:6px; max-height:180px; overflow-y:auto; padding:2px 0;" id="iconSuggestions"></div>
-      <label>显示方式</label>
+      <label>Display Mode</label>
       <div class="display-mode-options" id="displayModeOptions">
-        <button class="mode-option active" data-mode="icon">仅图标</button>
-        <button class="mode-option" data-mode="text">仅文本</button>
-        <button class="mode-option" data-mode="both">图标+文本</button>
+        <button class="mode-option active" data-mode="icon">Icon Only</button>
+        <button class="mode-option" data-mode="text">Text Only</button>
+        <button class="mode-option" data-mode="both">Icon + Text</button>
       </div>
-      <label>提示词内容</label>
-      <textarea id="editPrompt" placeholder="输入提示词..."></textarea>
-      <label>执行模式</label>
+      <label>Prompt Content</label>
+      <textarea id="editPrompt" placeholder="Enter prompt..."></textarea>
+      <label>Execute Mode</label>
       <div class="display-mode-options" id="execModeOptions">
-        <button class="mode-option" data-mode="write">写入输入框</button>
-        <button class="mode-option" data-mode="direct">直接执行</button>
+        <button class="mode-option" data-mode="write">Write to Input</button>
+        <button class="mode-option" data-mode="direct">Direct Execute</button>
       </div>
       <div class="modal-actions">
-        <button class="btn-cancel" id="btnCancel">取消</button>
-        <button class="btn-danger" id="btnDelete" style="display:none">删除</button>
-        <button class="btn-save" id="btnSave">保存</button>
+        <button class="btn-cancel" id="btnCancel">Cancel</button>
+        <button class="btn-danger" id="btnDelete" style="display:none">Delete</button>
+        <button class="btn-save" id="btnSave">Save</button>
       </div>
     </div>
   </div>
@@ -961,19 +961,19 @@ export class QuickPromptsProvider implements vscode.WebviewViewProvider {
                 <span class="codicon codicon-\${p.icon}"></span>
               </span>
               <span class="label">\${escapeHtml(p.label)}</span>
-              <span class="label-meta">\${p.builtIn ? '内置' : (p.mode === 'direct' ? '直接' : '写入')}</span>
+              <span class="label-meta">\${p.builtIn ? 'Built-in' : (p.mode === 'direct' ? 'Direct' : 'Write')}</span>
             </div>
             <div class="btn-group">
-              <button class="move-btn" data-id="\${p.id}" data-action="up" title="上移"\${index === 0 ? ' disabled' : ''}>
+              <button class="move-btn" data-id="\${p.id}" data-action="up" title="Move Up"\${index === 0 ? ' disabled' : ''}>
                 <span class="codicon codicon-chevron-up"></span>
               </button>
-              <button class="move-btn" data-id="\${p.id}" data-action="down" title="下移"\${index === total - 1 ? ' disabled' : ''}>
+              <button class="move-btn" data-id="\${p.id}" data-action="down" title="Move Down"\${index === total - 1 ? ' disabled' : ''}>
                 <span class="codicon codicon-chevron-down"></span>
               </button>
-              <button class="action-btn eye-btn" data-id="\${p.id}" title="\${p.hidden ? '显示' : '隐藏'}">
+              <button class="action-btn eye-btn" data-id="\${p.id}" title="\${p.hidden ? 'Show' : 'Hide'}">
                 <span class="codicon codicon-\${p.hidden ? 'eye-closed' : 'eye'}"></span>
               </button>
-              <button class="action-btn edit-btn" data-id="\${p.id}" title="\${p.builtIn ? '内置项不可编辑' : '编辑'}"\${p.builtIn ? ' disabled' : ''}>
+              <button class="action-btn edit-btn" data-id="\${p.id}" title="\${p.builtIn ? 'Built-in (read only)' : 'Edit'}"\${p.builtIn ? ' disabled' : ''}>
                 <span class="codicon codicon-edit"></span>
               </button>
             </div>
@@ -989,10 +989,10 @@ export class QuickPromptsProvider implements vscode.WebviewViewProvider {
               if (item.builtIn) {
                 const cmd = BUILT_IN_COMMANDS[id];
                 if (cmd) vscode.postMessage({ type: 'executeCommand', command: cmd });
-                showToast('正在执行');
+                showToast('Executing...');
               } else {
                 vscode.postMessage({ type: 'sendPrompt', prompt: item.prompt, mode: item.mode });
-                showToast(item.mode === 'direct' ? '已发送执行' : '已填入输入框');
+                showToast(item.mode === 'direct' ? 'Sent' : 'Filled in input');
               }
             }
           });
@@ -1004,10 +1004,10 @@ export class QuickPromptsProvider implements vscode.WebviewViewProvider {
               if (item.builtIn) {
                 const cmd = BUILT_IN_COMMANDS[id];
                 if (cmd) vscode.postMessage({ type: 'executeCommand', command: cmd });
-                showToast('正在执行');
+                showToast('Executing...');
               } else {
                 vscode.postMessage({ type: 'sendPromptWithEditor', prompt: item.prompt, mode: item.mode });
-                showToast('已附带选中代码' + (item.mode === 'direct' ? '发送' : '填入'));
+                showToast('Attached selected code ' + (item.mode === 'direct' ? 'and sent' : 'and filled in'));
               }
             }
           });
@@ -1034,12 +1034,12 @@ export class QuickPromptsProvider implements vscode.WebviewViewProvider {
               const arr = [...promptsCache];
               [arr[idx - 1], arr[idx]] = [arr[idx], arr[idx - 1]];
               saveAndRender(arr);
-              showToast('已上移');
+              showToast('Moved up');
             } else if (action === 'down' && idx < promptsCache.length - 1) {
               const arr = [...promptsCache];
               [arr[idx], arr[idx + 1]] = [arr[idx + 1], arr[idx]];
               saveAndRender(arr);
-              showToast('已下移');
+              showToast('Moved down');
             }
           });
         });
@@ -1054,7 +1054,7 @@ export class QuickPromptsProvider implements vscode.WebviewViewProvider {
             );
             saveAndRender(updated);
             const target = updated.find(p => p.id === id);
-            showToast(target?.hidden ? '已隐藏' : '已显示');
+            showToast(target?.hidden ? 'Hidden' : 'Shown');
           });
         });
       }
@@ -1078,7 +1078,7 @@ export class QuickPromptsProvider implements vscode.WebviewViewProvider {
       function openEditModal(item) {
         editingId = item.id;
         const isAdd = !item.id;
-        modalTitle.textContent = isAdd ? '添加快捷按钮' : '编辑提示词';
+        modalTitle.textContent = isAdd ? 'Add Shortcut' : 'Edit Prompt';
         // 更新标题图标
         const titleIcon = document.querySelector('.modal h3 .codicon:first-child');
         if (titleIcon) {
@@ -1188,7 +1188,7 @@ export class QuickPromptsProvider implements vscode.WebviewViewProvider {
         const execModeEl = document.querySelector('#execModeOptions .mode-option.active');
         const execMode = execModeEl ? execModeEl.dataset.mode : 'write';
         if (!label || !prompt) {
-          showToast('标题和内容不能为空');
+          showToast('Label and content cannot be empty');
           return;
         }
         let updated;
@@ -1211,7 +1211,7 @@ export class QuickPromptsProvider implements vscode.WebviewViewProvider {
         }
         vscode.postMessage({ type: 'savePrompts', prompts: updated });
         closeEditModal();
-        showToast(editingId ? '已保存' : '已添加');
+        showToast(editingId ? 'Saved' : 'Added');
       });
 
       // 编辑弹窗内删除
@@ -1228,7 +1228,7 @@ export class QuickPromptsProvider implements vscode.WebviewViewProvider {
         if (pendingDeleteId) {
           const updated = promptsCache.filter(p => p.id !== pendingDeleteId);
           vscode.postMessage({ type: 'savePrompts', prompts: updated });
-          showToast('已删除');
+          showToast('Deleted');
         }
         confirmOverlay.classList.remove('show');
         pendingDeleteId = null;
@@ -1292,7 +1292,7 @@ export class QuickPromptsProvider implements vscode.WebviewViewProvider {
           const pos = btn.dataset.pos;
           vscode.postMessage({ type: 'updatePosition', position: pos });
           renderPosition(pos);
-          showToast('位置已更新');
+          showToast('Position updated');
         }
       });
 

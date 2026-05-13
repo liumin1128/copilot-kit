@@ -101,7 +101,8 @@ function createStatusBarItems(
 
 /** 内置项 → 命令 ID 映射 */
 function getBuiltInCommand(item: PromptItem): string | undefined {
-  if (item.id === "builtin:smartChat") return "copilotQuickPrompts.smartChatAction";
+  if (item.id === "builtin:smartChat")
+    return "copilotQuickPrompts.smartChatAction";
   if (item.id === "builtin:closeAll") return "copilotQuickPrompts.closeAll";
   return undefined;
 }
@@ -113,7 +114,7 @@ function createPromptButton(
   priority: number,
 ): vscode.StatusBarItem {
   const statusBar = vscode.window.createStatusBarItem(alignment, priority);
-  statusBar.name = `快捷提示: ${item.label}`;
+  statusBar.name = `Quick Prompt: ${item.label}`;
 
   if (item.displayMode === "text") {
     statusBar.text = item.label;
@@ -133,13 +134,15 @@ function createPromptButton(
   } else {
     // 自定义项：发送提示词
     const modeLabel =
-      item.mode === "direct" ? "$(play) 直接执行" : "$(edit) 写入输入框";
+      item.mode === "direct"
+        ? "$(play) Direct Execute"
+        : "$(edit) Write to Input";
     statusBar.tooltip = new vscode.MarkdownString(
-      `**${item.label}**  \n$(triangle-right) ${modeLabel}  \n$(triangle-right) 点击触发`,
+      `**${item.label}**  \n$(triangle-right) ${modeLabel}  \n$(triangle-right) Click to trigger`,
     );
     statusBar.command = {
       command: "copilotQuickPrompts.sendPrompt",
-      title: "发送提示词",
+      title: "Send Prompt",
       arguments: [item.prompt, item.mode],
     };
   }
@@ -195,7 +198,7 @@ async function sendToCopilotChat(
     await vscode.commands.executeCommand("editor.action.clipboardPasteAction");
   } catch {
     await vscode.env.clipboard.writeText(promptText);
-    vscode.window.showInformationMessage("提示词已复制到剪贴板");
+    vscode.window.showInformationMessage("Prompt copied to clipboard");
   }
 }
 

@@ -1,7 +1,7 @@
 {
   "name": "copilot-quick-prompts",
   "displayName": "Copilot Quick Prompts",
-  "description": "为Copilot聊天添加快捷提示词按钮，一键插入预设提示词",
+  "description": "Quick prompt buttons for Copilot Chat — one-click insert of preset prompts",
   "version": "0.1.0",
   "publisher": "copilot-quick-prompts",
   "engines": {
@@ -28,27 +28,27 @@
             "rightRight"
           ],
           "enumDescriptions": [
-            "左侧靠边",
-            "左侧（默认）",
-            "右侧",
-            "右侧靠边"
+            "Left edge",
+            "Left (default)",
+            "Right",
+            "Right edge"
           ],
           "default": "leftRight",
-          "description": "状态栏快捷按钮的显示位置"
+          "description": "Display position of status bar quick buttons"
         }
       }
     },
     "commands": [
       {
         "command": "copilotQuickPrompts.sendPrompt",
-        "title": "发送快捷提示词到Copilot聊天"
+        "title": "Send quick prompt to Copilot Chat"
       }
     ],
     "viewsContainers": {
       "activitybar": [
         {
           "id": "copilot-quick-prompts",
-          "title": "快捷提示",
+          "title": "Quick Prompts",
           "icon": "$(rocket)"
         }
       ]
@@ -58,7 +58,7 @@
         {
           "type": "webview",
           "id": "copilotQuickPrompts.main",
-          "name": "快捷提示词"
+          "name": "Quick Prompts"
         }
       ]
     }
