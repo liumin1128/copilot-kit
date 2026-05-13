@@ -136,13 +136,9 @@ export class QuickPromptsProvider implements vscode.WebviewViewProvider {
 
   /** 向 webview 发送更新后的数据 */
   private postState(): void {
-    const position = vscode.workspace
-      .getConfiguration()
-      .get<StatusBarPosition>(CONFIG_KEY, "leftRight");
     this.webviewView?.webview.postMessage({
       type: "updateState",
       prompts: this.prompts,
-      position,
     });
   }
 
@@ -167,9 +163,6 @@ export class QuickPromptsProvider implements vscode.WebviewViewProvider {
     });
     this._configListener?.dispose();
     this._configListener = vscode.workspace.onDidChangeConfiguration((e) => {
-      if (e.affectsConfiguration(CONFIG_KEY) && this.webviewView) {
-        this.postState();
-      }
       if (e.affectsConfiguration(PROMPTS_CONFIG_KEY)) {
         this.prompts = this.loadPrompts();
         if (this.webviewView) {
@@ -207,17 +200,6 @@ export class QuickPromptsProvider implements vscode.WebviewViewProvider {
 
         case "executeCommand": {
           await vscode.commands.executeCommand(message.command);
-          break;
-        }
-
-        case "updatePosition": {
-          await vscode.workspace
-            .getConfiguration()
-            .update(
-              CONFIG_KEY,
-              message.position,
-              vscode.ConfigurationTarget.Global,
-            );
           break;
         }
       }
@@ -510,61 +492,23 @@ export class QuickPromptsProvider implements vscode.WebviewViewProvider {
       user-select: none;
     }
 
-    /* === 设置区域 === */
-    .settings-section {
-      border-top: 1px solid var(--border);
-      margin: 2px 0 0;
-      padding: 8px 12px 10px;
-    }
-    .settings-header {
+    /* === 底部设置提示 === */
+    .settings-hint {
       display: flex;
       align-items: center;
-      gap: 5px;
-      user-select: none;
-      margin-bottom: 8px;
-    }
-    .settings-header .codicon {
-      font-size: 12px;
-      color: var(--desc);
-      flex-shrink: 0;
-    }
-    .settings-title {
+      justify-content: center;
+      gap: 4px;
+      padding: 10px 12px 10px;
+      border-top: 1px solid var(--border);
+      margin-top: 2px;
       font-size: 10.5px;
       color: var(--desc);
-      text-transform: uppercase;
-      letter-spacing: 0.6px;
-      font-weight: 600;
+      opacity: 0.55;
+      user-select: none;
     }
-    .position-options {
-      display: flex;
-      gap: 5px;
-    }
-    .pos-btn {
-      flex: 1;
-      text-align: center;
-      padding: 6px 2px;
-      border: 1px solid var(--border);
-      border-radius: 5px;
-      background: transparent;
-      color: var(--desc);
-      font-size: 11px;
-      cursor: pointer;
-      transition: all 0.15s ease;
-      line-height: 1.3;
-      font-weight: 500;
-    }
-    .pos-btn:hover {
-      border-color: var(--btn-primary);
-      color: var(--fg);
-      background: rgba(128,128,128,0.06);
-    }
-    .pos-btn:active {
-      transform: scale(0.96);
-    }
-    .pos-btn.active {
-      background: var(--btn-primary);
-      color: var(--btn-primary-fg);
-      border-color: var(--btn-primary);
+    .settings-hint .codicon {
+      font-size: 12px;
+      flex-shrink: 0;
     }
 
     /* === Toast === */
@@ -831,7 +775,6 @@ export class QuickPromptsProvider implements vscode.WebviewViewProvider {
     /* 响应式: 窄侧边栏时隐藏部分控件 */
     @media (max-width: 250px) {
       .btn-group { display: none; }
-      .settings-section { display: none; }
       .section-badge { display: none; }
       .label-meta { display: none !important; }
     }
@@ -855,18 +798,10 @@ export class QuickPromptsProvider implements vscode.WebviewViewProvider {
       <div class="hint">Click to execute  ·  Right-click with code</div>
     </div>
 
-    <!-- 设置：状态栏位置 -->
-    <div class="settings-section">
-      <div class="settings-header">
-        <span class="codicon codicon-settings-gear"></span>
-        <span class="settings-title">Status Bar Position</span>
-      </div>
-      <div class="position-options" id="positionOptions">
-        <button class="pos-btn" data-pos="leftLeft">L L</button>
-        <button class="pos-btn" data-pos="leftRight">L R</button>
-        <button class="pos-btn" data-pos="rightLeft">R L</button>
-        <button class="pos-btn" data-pos="rightRight">R R</button>
-      </div>
+    <!-- 更多设置提示 -->
+    <div class="settings-hint">
+      <span class="codicon codicon-settings-gear"></span>
+      <span>更多设置在 VSCode 设置中</span>
     </div>
 
     <!-- Toast -->
@@ -1282,31 +1217,11 @@ export class QuickPromptsProvider implements vscode.WebviewViewProvider {
         vscode.postMessage({ type: 'savePrompts', prompts });
       }
 
-      // ---- 位置选择 ----
-      const positionOptions = document.getElementById('positionOptions');
-
-      function renderPosition(position) {
-        positionOptions.querySelectorAll('.pos-btn').forEach(btn => {
-          btn.classList.toggle('active', btn.dataset.pos === position);
-        });
-      }
-
-      positionOptions.addEventListener('click', (e) => {
-        const btn = e.target.closest('.pos-btn');
-        if (btn && !btn.classList.contains('active')) {
-          const pos = btn.dataset.pos;
-          vscode.postMessage({ type: 'updatePosition', position: pos });
-          renderPosition(pos);
-          showToast('Position updated');
-        }
-      });
-
       // ---- 通信 ----
       window.addEventListener('message', event => {
         const msg = event.data;
         if (msg.type === 'updateState') {
           render(msg.prompts);
-          renderPosition(msg.position);
         }
       });
 
