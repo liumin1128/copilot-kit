@@ -159,17 +159,6 @@ export class QuickPromptsProvider implements vscode.WebviewViewProvider {
           this._onDidChangePrompts.fire();
           break;
 
-        case "toggleMode": {
-          const item = this.prompts.find((p) => p.id === message.id);
-          if (item) {
-            item.mode = item.mode === "direct" ? "write" : "direct";
-            this.savePrompts();
-            this.postState();
-            this._onDidChangePrompts.fire();
-          }
-          break;
-        }
-
         case "updatePosition": {
           await vscode.workspace
             .getConfiguration()
@@ -263,71 +252,53 @@ export class QuickPromptsProvider implements vscode.WebviewViewProvider {
     /* --- 提示词卡片 --- */
     .prompt-card {
       display: flex;
-      align-items: stretch;
+      align-items: center;
       border: 1px solid var(--border);
-      border-radius: 8px;
+      border-radius: 6px;
       background: var(--bg);
       overflow: hidden;
       transition: border-color 0.2s;
+      padding: 6px 8px;
+      gap: 8px;
     }
     .prompt-card:hover { border-color: var(--btn-primary); }
 
-    /* 左侧点击区域 */
+    /* 点击区域 */
     .prompt-body {
       flex: 1;
       display: flex;
       align-items: center;
-      gap: 10px;
-      padding: 10px 12px;
+      gap: 8px;
       cursor: pointer;
       min-width: 0;
     }
-    .prompt-body:hover {
-      background: var(--hover);
-    }
-    .prompt-body .icon { font-size: 20px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; width: 24px; }
-    .prompt-info { flex: 1; min-width: 0; }
-    .prompt-info .label {
-      font-weight: 600;
+    .prompt-body:hover { opacity: 0.8; }
+    .prompt-body .icon { font-size: 16px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; width: 20px; }
+    .prompt-body .label {
       font-size: 13px;
-      display: block;
-    }
-    .prompt-info .preview {
-      font-size: 11px;
-      color: var(--desc);
-      display: block;
+      font-weight: 500;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
-      margin-top: 2px;
     }
 
-    /* 右侧操作按钮区 */
-    .prompt-actions {
-      display: flex;
-      flex-direction: column;
-      border-left: 1px solid var(--border);
-      flex-shrink: 0;
-    }
+    /* 编辑按钮 */
     .action-btn {
       display: flex;
       align-items: center;
       justify-content: center;
-      width: 32px;
-      flex: 1;
+      width: 24px;
+      height: 24px;
       border: none;
       background: transparent;
       cursor: pointer;
       color: var(--desc);
-      font-size: 14px;
+      font-size: 13px;
+      border-radius: 4px;
+      flex-shrink: 0;
       transition: background 0.15s, color 0.15s;
-      padding: 4px;
     }
-    .action-btn:hover { background: var(--hover); }
-    .action-btn.edit-btn:hover { color: #4fc3f7; }
-    .action-btn.mode-btn.direct { color: #ffa726; }
-    .action-btn.mode-btn.write { color: var(--desc); }
-    .mode-btn .mode-icon { font-size: 13px; pointer-events: none; }
+    .action-btn:hover { background: var(--hover); color: #4fc3f7; }
 
     /* --- 编辑弹窗 --- */
     .modal-overlay {
@@ -421,17 +392,6 @@ export class QuickPromptsProvider implements vscode.WebviewViewProvider {
     .icon-option:hover { border-color: var(--btn-primary); background: var(--hover); }
     .icon-option.active { border-color: var(--btn-primary); background: var(--btn-primary); color: var(--btn-primary-fg); }
 
-    .badge {
-      display: inline-block;
-      font-size: 9px;
-      padding: 1px 6px;
-      border-radius: 8px;
-      font-weight: 500;
-      margin-left: 6px;
-      vertical-align: middle;
-    }
-    .badge.direct { background: #ffa72633; color: #ffa726; }
-    .badge.write { background: #88888833; color: #999; }
     .hint {
       font-size: 10px;
       color: var(--desc);
@@ -510,8 +470,6 @@ export class QuickPromptsProvider implements vscode.WebviewViewProvider {
       color: var(--btn-primary-fg);
       background: var(--btn-primary);
     }
-    /* 删除按钮 */
-    .delete-btn:hover { color: #e57373 !important; }
 
     /* 删除确认弹窗 */
     .confirm-overlay {
@@ -590,7 +548,7 @@ export class QuickPromptsProvider implements vscode.WebviewViewProvider {
     <div class="section-title"><span class="codicon codicon-sparkle" style="margin-right: 4px; font-size: 12px;"></span>快捷提示词</div>
     <div id="promptList"></div>
     <button class="add-btn" id="addBtn"><span class="codicon codicon-plus"></span> 添加快捷按钮</button>
-    <div class="hint">左键执行 · 右键附带代码 · <span class="codicon codicon-play"></span>切换模式 · <span class="codicon codicon-edit"></span>编辑 · <span class="codicon codicon-trash"></span>删除</div>
+    <div class="hint">点击执行 · 右键附带代码</div>
     <div class="position-section">
       <div class="section-title"><span class="codicon codicon-arrow-left" style="margin-right: 4px; font-size: 12px;"></span>状态栏位置</div>
       <div class="position-options" id="positionOptions">
@@ -631,8 +589,14 @@ export class QuickPromptsProvider implements vscode.WebviewViewProvider {
       </div>
       <label>提示词内容</label>
       <textarea id="editPrompt" placeholder="输入提示词..."></textarea>
+      <label>执行模式</label>
+      <div class="display-mode-options" id="execModeOptions">
+        <button class="mode-option" data-mode="write">写入输入框</button>
+        <button class="mode-option" data-mode="direct">直接执行</button>
+      </div>
       <div class="modal-actions">
         <button class="btn-cancel" id="btnCancel">取消</button>
+        <button class="btn-danger" id="btnDelete" style="display:none">删除</button>
         <button class="btn-save" id="btnSave">保存</button>
       </div>
     </div>
@@ -667,36 +631,17 @@ export class QuickPromptsProvider implements vscode.WebviewViewProvider {
       // ---- 渲染 ----
       function render(prompts) {
         promptsCache = prompts;
-        promptList.innerHTML = prompts.map(p => {
-          const modeIcon = p.mode === 'direct' ? 'play' : 'edit';
-          const modeIconClass = 'codicon codicon-' + modeIcon;
-          const modeTitle = p.mode === 'direct' ? '直接执行' : '写入输入框';
-          return \`
-            <div class="prompt-card" style="--card-color: \${p.color}">
-              <div class="prompt-body" data-id="\${p.id}">
-                <span class="icon codicon codicon-\${p.icon}"></span>
-                <div class="prompt-info">
-                  <span class="label">
-                    \${escapeHtml(p.label)}
-                    <span class="badge \${p.mode}">\${modeTitle}</span>
-                  </span>
-                  <span class="preview">\${escapeHtml(p.prompt)}</span>
-                </div>
-              </div>
-              <div class="prompt-actions">
-                <button class="action-btn mode-btn \${p.mode}" data-id="\${p.id}" title="切换执行模式（当前：\${modeTitle}）">
-                  <span class="mode-icon codicon codicon-\${modeIcon}"></span>
-                </button>
-                <button class="action-btn edit-btn" data-id="\${p.id}" title="编辑提示词">
-                  <span class="codicon codicon-edit"></span>
-                </button>
-                <button class="action-btn delete-btn" data-id="\${p.id}" title="删除">
-                  <span class="codicon codicon-trash"></span>
-                </button>
-              </div>
+        promptList.innerHTML = prompts.map(p => \`
+          <div class="prompt-card">
+            <div class="prompt-body" data-id="\${p.id}">
+              <span class="icon codicon codicon-\${p.icon}"></span>
+              <span class="label">\${escapeHtml(p.label)}</span>
             </div>
-          \`;
-        }).join('');
+            <button class="action-btn edit-btn" data-id="\${p.id}" title="编辑">
+              <span class="codicon codicon-edit"></span>
+            </button>
+          </div>
+        \`).join('');
 
         // 绑定事件
         document.querySelectorAll('.prompt-body').forEach(el => {
@@ -719,28 +664,12 @@ export class QuickPromptsProvider implements vscode.WebviewViewProvider {
           });
         });
 
-        document.querySelectorAll('.mode-btn').forEach(btn => {
-          btn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            const id = btn.dataset.id;
-            vscode.postMessage({ type: 'toggleMode', id });
-          });
-        });
-
         document.querySelectorAll('.edit-btn').forEach(btn => {
           btn.addEventListener('click', (e) => {
             e.stopPropagation();
             const id = btn.dataset.id;
             const item = promptsCache.find(p => p.id === id);
             if (item) openEditModal(item);
-          });
-        });
-
-        document.querySelectorAll('.delete-btn').forEach(btn => {
-          btn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            pendingDeleteId = btn.dataset.id;
-            confirmOverlay.classList.add('show');
           });
         });
       }
@@ -755,6 +684,8 @@ export class QuickPromptsProvider implements vscode.WebviewViewProvider {
       }
 
       // ---- 编辑弹窗 ----
+      const btnDelete = document.getElementById('btnDelete');
+
       function openEditModal(item) {
         editingId = item.id;
         modalTitle.textContent = item.id ? '编辑提示词' : '添加快捷按钮';
@@ -767,6 +698,13 @@ export class QuickPromptsProvider implements vscode.WebviewViewProvider {
         document.querySelectorAll('#displayModeOptions .mode-option').forEach(el => {
           el.classList.toggle('active', el.dataset.mode === mode);
         });
+        // 设置执行模式
+        const execMode = item.mode || 'write';
+        document.querySelectorAll('#execModeOptions .mode-option').forEach(el => {
+          el.classList.toggle('active', el.dataset.mode === execMode);
+        });
+        // 显示/隐藏删除按钮（新增时隐藏）
+        btnDelete.style.display = item.id ? 'block' : 'none';
         modalOverlay.classList.add('show');
         editLabel.focus();
         updateIconPreview();
@@ -822,6 +760,16 @@ export class QuickPromptsProvider implements vscode.WebviewViewProvider {
         }
       });
 
+      // 执行模式选择
+      document.getElementById('execModeOptions').addEventListener('click', (e) => {
+        const option = e.target.closest('.mode-option');
+        if (option) {
+          document.querySelectorAll('#execModeOptions .mode-option').forEach(el => {
+            el.classList.toggle('active', el === option);
+          });
+        }
+      });
+
       // 添加按钮
       document.getElementById('addBtn').addEventListener('click', openAddModal);
 
@@ -832,6 +780,8 @@ export class QuickPromptsProvider implements vscode.WebviewViewProvider {
         const prompt = editPrompt.value.trim();
         const displayModeEl = document.querySelector('#displayModeOptions .mode-option.active');
         const displayMode = displayModeEl ? displayModeEl.dataset.mode : 'icon';
+        const execModeEl = document.querySelector('#execModeOptions .mode-option.active');
+        const execMode = execModeEl ? execModeEl.dataset.mode : 'write';
         if (!label || !prompt) {
           showToast('标题和内容不能为空');
           return;
@@ -845,18 +795,27 @@ export class QuickPromptsProvider implements vscode.WebviewViewProvider {
             icon,
             prompt,
             color: '#4fc3f7',
-            mode: 'write',
+            mode: execMode,
             displayMode,
           };
           updated = [...promptsCache, newItem];
         } else {
           updated = promptsCache.map(p =>
-            p.id === editingId ? { ...p, label, icon, prompt, displayMode } : p
+            p.id === editingId ? { ...p, label, icon, prompt, displayMode, mode: execMode } : p
           );
         }
         vscode.postMessage({ type: 'savePrompts', prompts: updated });
         closeEditModal();
         showToast(editingId ? '已保存' : '已添加');
+      });
+
+      // 编辑弹窗内删除
+      btnDelete.addEventListener('click', () => {
+        if (editingId) {
+          pendingDeleteId = editingId;
+          closeEditModal();
+          confirmOverlay.classList.add('show');
+        }
       });
 
       // 删除确认
@@ -885,12 +844,12 @@ export class QuickPromptsProvider implements vscode.WebviewViewProvider {
         if (e.target === modalOverlay) closeEditModal();
       });
 
-      // 回车保存
+      // 回车跳转下一输入框（排除 IME 输入法确认）
       editLabel.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter') editIcon.focus();
+        if (e.key === 'Enter' && !e.isComposing) editIcon.focus();
       });
       editIcon.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter') editPrompt.focus();
+        if (e.key === 'Enter' && !e.isComposing) editPrompt.focus();
       });
 
       // ---- Toast ----
