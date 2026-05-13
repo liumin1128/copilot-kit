@@ -46,7 +46,8 @@ export function activate(context: vscode.ExtensionContext) {
 
   // 初始化状态栏
   const statusBarDisposables: vscode.Disposable[] = [];
-  const rebuildStatusBar = () => createStatusBarItems(context, statusBarDisposables);
+  const rebuildStatusBar = () =>
+    createStatusBarItems(context, statusBarDisposables);
   rebuildStatusBar();
 
   // 监听配置变更自动刷新状态栏
@@ -93,10 +94,7 @@ function createStatusBarItems(
   disposables.push(label);
 
   prompts.forEach((item) => {
-    const statusBar = vscode.window.createStatusBarItem(
-      alignment,
-      btnPri,
-    );
+    const statusBar = vscode.window.createStatusBarItem(alignment, btnPri);
     statusBar.name = `快捷提示: ${item.label}`;
     if (item.displayMode === "text") {
       statusBar.text = item.label;
@@ -134,8 +132,8 @@ function loadPrompts(storage: vscode.Memento): PromptItem[] {
     try {
       const parsed = JSON.parse(saved) as PromptItem[];
       return parsed
-        .filter(p => !DEFAULT_PROMPT_IDS.has(p.id))
-        .map(p => ({ ...p, displayMode: p.displayMode || "icon" }));
+        .filter((p) => !DEFAULT_PROMPT_IDS.has(p.id))
+        .map((p) => ({ ...p, displayMode: p.displayMode || "icon" }));
     } catch {
       // ignore
     }
@@ -170,27 +168,22 @@ async function sendToCopilotChat(
   }
 }
 
-/** 检测是否存在聊天编辑器标签页 */
-function hasChatTab(): boolean {
+/** 检测是否存在任何编辑器标签页 */
+function hasAnyTab(): boolean {
   for (const group of vscode.window.tabGroups.all) {
-    for (const tab of group.tabs) {
-      if (
-        tab.label.includes("Chat") ||
-        tab.label.includes("Copilot")
-      ) {
-        return true;
-      }
+    if (group.tabs.length > 0) {
+      return true;
     }
   }
   return false;
 }
 
-/** 智能聊天操作：无聊天标签→创建，有→向右拆分 */
+/** 智能聊天操作：无标签页→创建聊天编辑器标签页，有标签页→向右拆分 */
 async function smartChatAction(): Promise<void> {
-  if (hasChatTab()) {
+  if (hasAnyTab()) {
     await vscode.commands.executeCommand("workbench.action.splitEditorRight");
   } else {
-    await vscode.commands.executeCommand("workbench.action.chat.newEditSession");
+    await vscode.commands.executeCommand("workbench.action.chat.openInEditor");
   }
 }
 
