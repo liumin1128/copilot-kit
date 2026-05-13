@@ -512,6 +512,50 @@ export class QuickPromptsProvider implements vscode.WebviewViewProvider {
     }
     /* 删除按钮 */
     .delete-btn:hover { color: #e57373 !important; }
+
+    /* 删除确认弹窗 */
+    .confirm-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.4);
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
+    }
+    .confirm-overlay.show { display: flex; }
+    .confirm-box {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 20px 24px;
+      width: 280px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.25);
+      text-align: center;
+    }
+    .confirm-box p {
+      font-size: 14px;
+      margin-bottom: 18px;
+      line-height: 1.5;
+    }
+    .confirm-actions {
+      display: flex;
+      gap: 8px;
+    }
+    .confirm-actions button {
+      flex: 1;
+      padding: 8px 0;
+      border: none;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+    }
+    .btn-danger {
+      background: #e53935;
+      color: #fff;
+    }
+    .btn-danger:hover { background: #c62828; }
     /* 显示方式选择 */
     .display-mode-options {
       display: flex;
@@ -559,6 +603,17 @@ export class QuickPromptsProvider implements vscode.WebviewViewProvider {
     <div class="toast" id="toast"></div>
   </div>
 
+  <!-- 删除确认弹窗 -->
+  <div class="confirm-overlay" id="confirmOverlay">
+    <div class="confirm-box">
+      <p><span class="codicon codicon-trash" style="font-size: 24px; color: #e53935; display: block; margin-bottom: 8px;"></span>确定要删除该快捷按钮吗？</p>
+      <div class="confirm-actions">
+        <button class="btn-cancel" id="confirmCancel">取消</button>
+        <button class="btn-danger" id="confirmDelete">确认删除</button>
+      </div>
+    </div>
+  </div>
+
   <!-- 编辑弹窗 -->
   <div class="modal-overlay" id="modalOverlay">
     <div class="modal">
@@ -589,6 +644,12 @@ export class QuickPromptsProvider implements vscode.WebviewViewProvider {
       const promptList = document.getElementById('promptList');
       const toast = document.getElementById('toast');
       let toastTimer = null;
+
+      // 删除确认弹窗元素
+      const confirmOverlay = document.getElementById('confirmOverlay');
+      const confirmDelete = document.getElementById('confirmDelete');
+      const confirmCancel = document.getElementById('confirmCancel');
+      let pendingDeleteId = null;
 
       // 编辑弹窗元素
       const modalOverlay = document.getElementById('modalOverlay');
@@ -678,12 +739,8 @@ export class QuickPromptsProvider implements vscode.WebviewViewProvider {
         document.querySelectorAll('.delete-btn').forEach(btn => {
           btn.addEventListener('click', (e) => {
             e.stopPropagation();
-            const id = btn.dataset.id;
-            if (confirm('确定要删除该快捷按钮吗？')) {
-              const updated = promptsCache.filter(p => p.id !== id);
-              vscode.postMessage({ type: 'savePrompts', prompts: updated });
-              showToast('已删除');
-            }
+            pendingDeleteId = btn.dataset.id;
+            confirmOverlay.classList.add('show');
           });
         });
       }
@@ -800,6 +857,27 @@ export class QuickPromptsProvider implements vscode.WebviewViewProvider {
         vscode.postMessage({ type: 'savePrompts', prompts: updated });
         closeEditModal();
         showToast(editingId ? '已保存' : '已添加');
+      });
+
+      // 删除确认
+      confirmDelete.addEventListener('click', () => {
+        if (pendingDeleteId) {
+          const updated = promptsCache.filter(p => p.id !== pendingDeleteId);
+          vscode.postMessage({ type: 'savePrompts', prompts: updated });
+          showToast('已删除');
+        }
+        confirmOverlay.classList.remove('show');
+        pendingDeleteId = null;
+      });
+      confirmCancel.addEventListener('click', () => {
+        confirmOverlay.classList.remove('show');
+        pendingDeleteId = null;
+      });
+      confirmOverlay.addEventListener('click', (e) => {
+        if (e.target === confirmOverlay) {
+          confirmOverlay.classList.remove('show');
+          pendingDeleteId = null;
+        }
       });
 
       // 点击遮罩关闭
