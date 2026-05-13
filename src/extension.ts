@@ -47,6 +47,13 @@ export function activate(context: vscode.ExtensionContext) {
       }
     }),
   );
+
+  // 监听提示词数据变更（侧边栏编辑 icon、label 等），自动刷新状态栏
+  context.subscriptions.push(
+    provider.onDidChangePrompts(() => {
+      rebuildStatusBar();
+    }),
+  );
 }
 
 /** 创建状态栏快捷按钮 */
