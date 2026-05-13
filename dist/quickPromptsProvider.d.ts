@@ -16,6 +16,9 @@ export declare class QuickPromptsProvider implements vscode.WebviewViewProvider 
     private readonly storage;
     private prompts;
     private webviewView?;
+    /** 提示词变更事件（用于通知 extension 刷新状态栏等） */
+    private _onDidChangePrompts;
+    readonly onDidChangePrompts: vscode.Event<void>;
     constructor(extensionUri: vscode.Uri, storage: vscode.Memento);
     /** 从全局存储加载提示词 */
     private loadPrompts;

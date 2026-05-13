@@ -20,6 +20,11 @@
       {
         "command": "copilotQuickPrompts.sendPrompt",
         "title": "发送快捷提示词到Copilot聊天"
+      },
+      {
+        "command": "copilotQuickPrompts.openNewChatTab",
+        "title": "打开新的聊天标签页",
+        "icon": "$(comment-discussion)"
       }
     ],
     "viewsContainers": {

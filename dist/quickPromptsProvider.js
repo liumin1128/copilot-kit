@@ -40,7 +40,7 @@ exports.STORAGE_KEY = "copilotQuickPrompts.prompts";
 exports.DEFAULT_PROMPTS = [
     {
         id: "review",
-        icon: "🔍",
+        icon: "search",
         label: "代码审查",
         prompt: "请审查以下代码，找出潜在的问题、安全漏洞和改进建议：",
         color: "#4fc3f7",
@@ -48,7 +48,7 @@ exports.DEFAULT_PROMPTS = [
     },
     {
         id: "explain",
-        icon: "📖",
+        icon: "book",
         label: "解释代码",
         prompt: "请详细解释以下代码的功能、工作原理和关键逻辑：",
         color: "#81c784",
@@ -56,7 +56,7 @@ exports.DEFAULT_PROMPTS = [
     },
     {
         id: "test",
-        icon: "🧪",
+        icon: "beaker",
         label: "编写测试",
         prompt: "请为以下代码编写全面的单元测试，覆盖主要场景和边界情况：",
         color: "#ffb74d",
@@ -64,7 +64,7 @@ exports.DEFAULT_PROMPTS = [
     },
     {
         id: "optimize",
-        icon: "⚡",
+        icon: "zap",
         label: "优化代码",
         prompt: "请优化以下代码，提高性能、可读性和可维护性：",
         color: "#e57373",
@@ -72,7 +72,7 @@ exports.DEFAULT_PROMPTS = [
     },
     {
         id: "docs",
-        icon: "📝",
+        icon: "comment",
         label: "添加注释",
         prompt: "请为以下代码添加详细的中文注释，解释每个函数和关键逻辑：",
         color: "#ba68c8",
@@ -80,7 +80,7 @@ exports.DEFAULT_PROMPTS = [
     },
     {
         id: "refactor",
-        icon: "🔄",
+        icon: "sync",
         label: "重构建议",
         prompt: "请分析以下代码并提供重构建议，使其更符合设计模式和最佳实践：",
         color: "#4db6ac",
@@ -92,6 +92,9 @@ class QuickPromptsProvider {
     storage;
     prompts;
     webviewView;
+    /** 提示词变更事件（用于通知 extension 刷新状态栏等） */
+    _onDidChangePrompts = new vscode.EventEmitter();
+    onDidChangePrompts = this._onDidChangePrompts.event;
     constructor(extensionUri, storage) {
         this.extensionUri = extensionUri;
         this.storage = storage;
@@ -145,6 +148,7 @@ class QuickPromptsProvider {
                     this.prompts = message.prompts;
                     this.savePrompts();
                     this.postPrompts();
+                    this._onDidChangePrompts.fire();
                     break;
                 case "toggleMode": {
                     const item = this.prompts.find((p) => p.id === message.id);
@@ -152,6 +156,7 @@ class QuickPromptsProvider {
                         item.mode = item.mode === "direct" ? "write" : "direct";
                         this.savePrompts();
                         this.postPrompts();
+                        this._onDidChangePrompts.fire();
                     }
                     break;
                 }
@@ -181,7 +186,8 @@ class QuickPromptsProvider {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline';">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline' https://cdn.jsdelivr.net; font-src https://cdn.jsdelivr.net; script-src 'unsafe-inline';">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@vscode/codicons@0/dist/codicon.css" />
   <style>
     :root {
       --bg: var(--vscode-sideBar-background);
@@ -240,7 +246,7 @@ class QuickPromptsProvider {
     .prompt-body:hover {
       background: var(--hover);
     }
-    .prompt-body .icon { font-size: 20px; flex-shrink: 0; }
+    .prompt-body .icon { font-size: 20px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; width: 24px; }
     .prompt-info { flex: 1; min-width: 0; }
     .prompt-info .label {
       font-weight: 600;
@@ -282,7 +288,7 @@ class QuickPromptsProvider {
     .action-btn.edit-btn:hover { color: #4fc3f7; }
     .action-btn.mode-btn.direct { color: #ffa726; }
     .action-btn.mode-btn.write { color: var(--desc); }
-    .mode-btn .mode-icon { font-size: 13px; }
+    .mode-btn .mode-icon { font-size: 13px; pointer-events: none; }
 
     /* --- 编辑弹窗 --- */
     .modal-overlay {
@@ -360,6 +366,22 @@ class QuickPromptsProvider {
       color: var(--btn-primary-fg);
     }
 
+    .icon-option {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 28px;
+      height: 28px;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 16px;
+      color: var(--fg);
+      transition: border-color 0.15s, background 0.15s;
+    }
+    .icon-option:hover { border-color: var(--btn-primary); background: var(--hover); }
+    .icon-option.active { border-color: var(--btn-primary); background: var(--btn-primary); color: var(--btn-primary-fg); }
+
     .badge {
       display: inline-block;
       font-size: 9px;
@@ -399,9 +421,9 @@ class QuickPromptsProvider {
 </head>
 <body>
   <div class="container">
-    <div class="section-title">🚀 快捷提示词</div>
+    <div class="section-title"><span class="codicon codicon-sparkle" style="margin-right: 4px; font-size: 12px;"></span>快捷提示词</div>
     <div id="promptList"></div>
-    <div class="hint">左键执行 · 右键附带代码 · ⚡切换模式 · ✏️编辑</div>
+    <div class="hint">左键执行 · 右键附带代码 · <span class="codicon codicon-play"></span>切换模式 · <span class="codicon codicon-edit"></span>编辑</div>
     <div class="toast" id="toast"></div>
   </div>
 
@@ -411,6 +433,9 @@ class QuickPromptsProvider {
       <h3 id="modalTitle">编辑提示词</h3>
       <label>标题</label>
       <input type="text" id="editLabel" placeholder="按钮显示名称" />
+      <label>图标（codicon 名称）</label>
+      <input type="text" id="editIcon" placeholder="例如：search, book, beaker, zap..." />
+      <div style="display:flex; gap:4px; flex-wrap:wrap; margin-top:6px;" id="iconSuggestions"></div>
       <label>提示词内容</label>
       <textarea id="editPrompt" placeholder="输入提示词..."></textarea>
       <div class="modal-actions">
@@ -430,21 +455,27 @@ class QuickPromptsProvider {
       // 编辑弹窗元素
       const modalOverlay = document.getElementById('modalOverlay');
       const editLabel = document.getElementById('editLabel');
+      const editIcon = document.getElementById('editIcon');
       const editPrompt = document.getElementById('editPrompt');
       const modalTitle = document.getElementById('modalTitle');
+      const iconSuggestions = document.getElementById('iconSuggestions');
       let editingId = null;
       let promptsCache = [];
+
+      // 常用 codicon 列表
+      const COMMON_ICONS = ['search', 'book', 'beaker', 'zap', 'comment', 'sync', 'eye', 'lightbulb', 'sparkle', 'code', 'rocket', 'pulse', 'star', 'heart', 'tools', 'wrench', 'flame', 'check', 'info', 'question', 'warning', 'error', 'lock', 'globe', 'fire', 'key', 'pin', 'tag', 'trash', 'organization', 'person', 'graph', 'note', 'quote'];
 
       // ---- 渲染 ----
       function render(prompts) {
         promptsCache = prompts;
         promptList.innerHTML = prompts.map(p => {
-          const modeIcon = p.mode === 'direct' ? '⚡' : '✍️';
+          const modeIcon = p.mode === 'direct' ? 'play' : 'edit';
+          const modeIconClass = 'codicon codicon-' + modeIcon;
           const modeTitle = p.mode === 'direct' ? '直接执行' : '写入输入框';
           return \`
             <div class="prompt-card" style="--card-color: \${p.color}">
               <div class="prompt-body" data-id="\${p.id}">
-                <span class="icon">\${p.icon}</span>
+                <span class="icon codicon codicon-\${p.icon}"></span>
                 <div class="prompt-info">
                   <span class="label">
                     \${escapeHtml(p.label)}
@@ -455,10 +486,10 @@ class QuickPromptsProvider {
               </div>
               <div class="prompt-actions">
                 <button class="action-btn mode-btn \${p.mode}" data-id="\${p.id}" title="切换执行模式（当前：\${modeTitle}）">
-                  <span class="mode-icon">\${modeIcon}</span>
+                  <span class="mode-icon codicon codicon-\${modeIcon}"></span>
                 </button>
                 <button class="action-btn edit-btn" data-id="\${p.id}" title="编辑提示词">
-                  ✏️
+                  <span class="codicon codicon-edit"></span>
                 </button>
               </div>
             </div>
@@ -472,7 +503,7 @@ class QuickPromptsProvider {
             const item = promptsCache.find(p => p.id === id);
             if (item) {
               vscode.postMessage({ type: 'sendPrompt', prompt: item.prompt, mode: item.mode });
-              showToast(item.mode === 'direct' ? '⚡ 已发送执行' : '✍️ 已填入输入框');
+              showToast(item.mode === 'direct' ? '已发送执行' : '已填入输入框');
             }
           });
           el.addEventListener('contextmenu', (e) => {
@@ -481,7 +512,7 @@ class QuickPromptsProvider {
             const item = promptsCache.find(p => p.id === id);
             if (item) {
               vscode.postMessage({ type: 'sendPromptWithEditor', prompt: item.prompt, mode: item.mode });
-              showToast('📎 已附带选中代码' + (item.mode === 'direct' ? '发送' : '填入'));
+              showToast('已附带选中代码' + (item.mode === 'direct' ? '发送' : '填入'));
             }
           });
         });
@@ -504,14 +535,26 @@ class QuickPromptsProvider {
         });
       }
 
+      /** 渲染图标建议列表 */
+      function renderIconSuggestions(selected) {
+        iconSuggestions.innerHTML = COMMON_ICONS.map(name =>
+          \`<span class="icon-option\${name === selected ? ' active' : ''}" data-icon="\${name}" title="\${name}">
+            <span class="codicon codicon-\${name}"></span>
+          </span>\`
+        ).join('');
+      }
+
       // ---- 编辑弹窗 ----
       function openEditModal(item) {
         editingId = item.id;
         modalTitle.textContent = '编辑提示词';
         editLabel.value = item.label;
+        editIcon.value = item.icon || 'sparkle';
         editPrompt.value = item.prompt;
+        renderIconSuggestions(editIcon.value);
         modalOverlay.classList.add('show');
         editLabel.focus();
+        updateIconPreview();
       }
 
       function closeEditModal() {
@@ -519,21 +562,44 @@ class QuickPromptsProvider {
         editingId = null;
       }
 
+      /** 更新图标实时预览 */
+      function updateIconPreview() {
+        const name = editIcon.value.trim() || 'sparkle';
+        editIcon.style.backgroundImage = 'none';
+        // 高亮对应的建议项
+        iconSuggestions.querySelectorAll('.icon-option').forEach(el => {
+          el.classList.toggle('active', el.dataset.icon === name);
+        });
+      }
+
+      // 图标输入实时预览
+      editIcon.addEventListener('input', updateIconPreview);
+
+      // 图标建议点击选择
+      iconSuggestions.addEventListener('click', (e) => {
+        const option = e.target.closest('.icon-option');
+        if (option) {
+          editIcon.value = option.dataset.icon;
+          updateIconPreview();
+        }
+      });
+
       document.getElementById('btnCancel').addEventListener('click', closeEditModal);
       document.getElementById('btnSave').addEventListener('click', () => {
         if (!editingId) return;
         const label = editLabel.value.trim();
+        const icon = editIcon.value.trim() || 'sparkle';
         const prompt = editPrompt.value.trim();
         if (!label || !prompt) {
-          showToast('⚠️ 标题和内容不能为空');
+          showToast('标题和内容不能为空');
           return;
         }
         const updated = promptsCache.map(p =>
-          p.id === editingId ? { ...p, label, prompt } : p
+          p.id === editingId ? { ...p, label, icon, prompt } : p
         );
         vscode.postMessage({ type: 'savePrompts', prompts: updated });
         closeEditModal();
-        showToast('✅ 已保存');
+        showToast('已保存');
       });
 
       // 点击遮罩关闭
@@ -543,6 +609,9 @@ class QuickPromptsProvider {
 
       // 回车保存
       editLabel.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') editIcon.focus();
+      });
+      editIcon.addEventListener('keydown', (e) => {
         if (e.key === 'Enter') editPrompt.focus();
       });
 
