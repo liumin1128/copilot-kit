@@ -31,32 +31,6 @@ export function activate(context: vscode.ExtensionContext) {
   );
   context.subscriptions.push(sendPromptCommand);
 
-  // 注册快捷选择面板命令（聊天标题栏按钮会触发这个）
-  const quickPickCommand = vscode.commands.registerCommand(
-    "copilotQuickPrompts.showQuickPick",
-    async () => {
-      const prompts = loadPrompts(context.globalState);
-      const items = prompts.map((p) => ({
-        label: `${p.icon} ${p.label}`,
-        description: p.mode === "direct" ? "⚡ 直接执行" : "✍️ 写入输入框",
-        detail: p.prompt,
-        id: p.id,
-        prompt: p.prompt,
-        mode: p.mode,
-      }));
-
-      const selected = await vscode.window.showQuickPick(items, {
-        placeHolder: "选择要触发的快捷提示词…",
-        title: "Copilot 快捷提示词",
-      });
-
-      if (selected) {
-        await sendToCopilotChat(selected.prompt, selected.mode);
-      }
-    },
-  );
-  context.subscriptions.push(quickPickCommand);
-
   // 创建状态栏快捷按钮
   createStatusBarItems(context);
 }

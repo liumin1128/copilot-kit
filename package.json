@@ -12,7 +12,7 @@
     "Other"
   ],
   "activationEvents": [
-    "onStartupFinished"
+    "onView:copilotQuickPrompts.main"
   ],
   "main": "./dist/extension.js",
   "contributes": {
@@ -20,22 +20,8 @@
       {
         "command": "copilotQuickPrompts.sendPrompt",
         "title": "发送快捷提示词到Copilot聊天"
-      },
-      {
-        "command": "copilotQuickPrompts.showQuickPick",
-        "title": "快捷提示词",
-        "icon": "$(rocket)"
       }
     ],
-    "menus": {
-      "view/title": [
-        {
-          "command": "copilotQuickPrompts.showQuickPick",
-          "when": "view == workbench.panel.chat || view == workbench.view.chat || view == github.copilot.chat",
-          "group": "navigation"
-        }
-      ]
-    },
     "viewsContainers": {
       "activitybar": [
         {
