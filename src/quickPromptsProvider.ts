@@ -44,61 +44,18 @@ export interface PromptItem {
   prompt: string;
   color: string;
   mode: "direct" | "write";
+  displayMode: "icon" | "text" | "both";
 }
 
 export const STORAGE_KEY = "copilotQuickPrompts.prompts";
 
-/** 默认预设提示词列表 */
-export const DEFAULT_PROMPTS: PromptItem[] = [
-  {
-    id: "review",
-    icon: "search",
-    label: "代码审查",
-    prompt: "请审查以下代码，找出潜在的问题、安全漏洞和改进建议：",
-    color: "#4fc3f7",
-    mode: "write",
-  },
-  {
-    id: "explain",
-    icon: "book",
-    label: "解释代码",
-    prompt: "请详细解释以下代码的功能、工作原理和关键逻辑：",
-    color: "#81c784",
-    mode: "write",
-  },
-  {
-    id: "test",
-    icon: "beaker",
-    label: "编写测试",
-    prompt: "请为以下代码编写全面的单元测试，覆盖主要场景和边界情况：",
-    color: "#ffb74d",
-    mode: "write",
-  },
-  {
-    id: "optimize",
-    icon: "zap",
-    label: "优化代码",
-    prompt: "请优化以下代码，提高性能、可读性和可维护性：",
-    color: "#e57373",
-    mode: "write",
-  },
-  {
-    id: "docs",
-    icon: "comment",
-    label: "添加注释",
-    prompt: "请为以下代码添加详细的中文注释，解释每个函数和关键逻辑：",
-    color: "#ba68c8",
-    mode: "write",
-  },
-  {
-    id: "refactor",
-    icon: "sync",
-    label: "重构建议",
-    prompt: "请分析以下代码并提供重构建议，使其更符合设计模式和最佳实践：",
-    color: "#4db6ac",
-    mode: "write",
-  },
-];
+/** 预设默认提示词的 ID 列表，用于迁移时过滤掉旧数据中的默认项 */
+export const DEFAULT_PROMPT_IDS = new Set([
+  "review", "explain", "test", "optimize", "docs", "refactor",
+]);
+
+/** 默认预设提示词列表（已清空，只保留用户新建的） */
+export const DEFAULT_PROMPTS: PromptItem[] = [];
 
 export class QuickPromptsProvider implements vscode.WebviewViewProvider {
   private prompts: PromptItem[];
@@ -122,7 +79,10 @@ export class QuickPromptsProvider implements vscode.WebviewViewProvider {
     const saved = this.storage.get<string>(STORAGE_KEY);
     if (saved) {
       try {
-        return JSON.parse(saved) as PromptItem[];
+        const parsed = JSON.parse(saved) as PromptItem[];
+        return parsed
+          .filter(p => !DEFAULT_PROMPT_IDS.has(p.id))
+          .map(p => ({ ...p, displayMode: p.displayMode || "icon" }));
       } catch {
         // ignore
       }
@@ -529,13 +489,64 @@ export class QuickPromptsProvider implements vscode.WebviewViewProvider {
       box-shadow: 0 4px 12px rgba(0,0,0,0.15);
     }
     .toast.show { display: block; }
+    /* 添加按钮 */
+    .add-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      width: 100%;
+      padding: 8px;
+      border: 1px dashed var(--border);
+      border-radius: 8px;
+      background: transparent;
+      color: var(--desc);
+      font-size: 12px;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .add-btn:hover {
+      border-color: var(--btn-primary);
+      color: var(--btn-primary-fg);
+      background: var(--btn-primary);
+    }
+    /* 删除按钮 */
+    .delete-btn:hover { color: #e57373 !important; }
+    /* 显示方式选择 */
+    .display-mode-options {
+      display: flex;
+      gap: 4px;
+      margin-top: 6px;
+    }
+    .mode-option {
+      flex: 1;
+      text-align: center;
+      padding: 6px 4px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      background: transparent;
+      color: var(--desc);
+      font-size: 11px;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .mode-option:hover {
+      border-color: var(--btn-primary);
+      color: var(--fg);
+    }
+    .mode-option.active {
+      background: var(--btn-primary);
+      color: var(--btn-primary-fg);
+      border-color: var(--btn-primary);
+    }
   </style>
 </head>
 <body>
   <div class="container">
     <div class="section-title"><span class="codicon codicon-sparkle" style="margin-right: 4px; font-size: 12px;"></span>快捷提示词</div>
     <div id="promptList"></div>
-    <div class="hint">左键执行 · 右键附带代码 · <span class="codicon codicon-play"></span>切换模式 · <span class="codicon codicon-edit"></span>编辑</div>
+    <button class="add-btn" id="addBtn"><span class="codicon codicon-plus"></span> 添加快捷按钮</button>
+    <div class="hint">左键执行 · 右键附带代码 · <span class="codicon codicon-play"></span>切换模式 · <span class="codicon codicon-edit"></span>编辑 · <span class="codicon codicon-trash"></span>删除</div>
     <div class="position-section">
       <div class="section-title"><span class="codicon codicon-arrow-left" style="margin-right: 4px; font-size: 12px;"></span>状态栏位置</div>
       <div class="position-options" id="positionOptions">
@@ -557,6 +568,12 @@ export class QuickPromptsProvider implements vscode.WebviewViewProvider {
       <label>图标（codicon 名称）</label>
       <input type="text" id="editIcon" placeholder="例如：search, book, beaker, zap..." />
       <div style="display:flex; gap:4px; flex-wrap:wrap; margin-top:6px;" id="iconSuggestions"></div>
+      <label>显示方式</label>
+      <div class="display-mode-options" id="displayModeOptions">
+        <button class="mode-option active" data-mode="icon">仅图标</button>
+        <button class="mode-option" data-mode="text">仅文本</button>
+        <button class="mode-option" data-mode="both">图标+文本</button>
+      </div>
       <label>提示词内容</label>
       <textarea id="editPrompt" placeholder="输入提示词..."></textarea>
       <div class="modal-actions">
@@ -612,6 +629,9 @@ export class QuickPromptsProvider implements vscode.WebviewViewProvider {
                 <button class="action-btn edit-btn" data-id="\${p.id}" title="编辑提示词">
                   <span class="codicon codicon-edit"></span>
                 </button>
+                <button class="action-btn delete-btn" data-id="\${p.id}" title="删除">
+                  <span class="codicon codicon-trash"></span>
+                </button>
               </div>
             </div>
           \`;
@@ -654,6 +674,18 @@ export class QuickPromptsProvider implements vscode.WebviewViewProvider {
             if (item) openEditModal(item);
           });
         });
+
+        document.querySelectorAll('.delete-btn').forEach(btn => {
+          btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const id = btn.dataset.id;
+            if (confirm('确定要删除该快捷按钮吗？')) {
+              const updated = promptsCache.filter(p => p.id !== id);
+              vscode.postMessage({ type: 'savePrompts', prompts: updated });
+              showToast('已删除');
+            }
+          });
+        });
       }
 
       /** 渲染图标建议列表 */
@@ -668,14 +700,32 @@ export class QuickPromptsProvider implements vscode.WebviewViewProvider {
       // ---- 编辑弹窗 ----
       function openEditModal(item) {
         editingId = item.id;
-        modalTitle.textContent = '编辑提示词';
-        editLabel.value = item.label;
+        modalTitle.textContent = item.id ? '编辑提示词' : '添加快捷按钮';
+        editLabel.value = item.label || '';
         editIcon.value = item.icon || 'sparkle';
-        editPrompt.value = item.prompt;
+        editPrompt.value = item.prompt || '';
         renderIconSuggestions(editIcon.value);
+        // 设置显示方式
+        const mode = item.displayMode || 'icon';
+        document.querySelectorAll('#displayModeOptions .mode-option').forEach(el => {
+          el.classList.toggle('active', el.dataset.mode === mode);
+        });
         modalOverlay.classList.add('show');
         editLabel.focus();
         updateIconPreview();
+      }
+
+      /** 添加新快捷按钮 */
+      function openAddModal() {
+        openEditModal({
+          id: '',
+          label: '',
+          icon: 'sparkle',
+          prompt: '',
+          color: '#4fc3f7',
+          mode: 'write',
+          displayMode: 'icon',
+        });
       }
 
       function closeEditModal() {
@@ -705,22 +755,51 @@ export class QuickPromptsProvider implements vscode.WebviewViewProvider {
         }
       });
 
+      // 显示方式选择
+      document.getElementById('displayModeOptions').addEventListener('click', (e) => {
+        const option = e.target.closest('.mode-option');
+        if (option) {
+          document.querySelectorAll('#displayModeOptions .mode-option').forEach(el => {
+            el.classList.toggle('active', el === option);
+          });
+        }
+      });
+
+      // 添加按钮
+      document.getElementById('addBtn').addEventListener('click', openAddModal);
+
       document.getElementById('btnCancel').addEventListener('click', closeEditModal);
       document.getElementById('btnSave').addEventListener('click', () => {
-        if (!editingId) return;
         const label = editLabel.value.trim();
         const icon = editIcon.value.trim() || 'sparkle';
         const prompt = editPrompt.value.trim();
+        const displayModeEl = document.querySelector('#displayModeOptions .mode-option.active');
+        const displayMode = displayModeEl ? displayModeEl.dataset.mode : 'icon';
         if (!label || !prompt) {
           showToast('标题和内容不能为空');
           return;
         }
-        const updated = promptsCache.map(p =>
-          p.id === editingId ? { ...p, label, icon, prompt } : p
-        );
+        let updated;
+        if (!editingId) {
+          // 新增
+          const newItem = {
+            id: 'custom-' + Date.now(),
+            label,
+            icon,
+            prompt,
+            color: '#4fc3f7',
+            mode: 'write',
+            displayMode,
+          };
+          updated = [...promptsCache, newItem];
+        } else {
+          updated = promptsCache.map(p =>
+            p.id === editingId ? { ...p, label, icon, prompt, displayMode } : p
+          );
+        }
         vscode.postMessage({ type: 'savePrompts', prompts: updated });
         closeEditModal();
-        showToast('已保存');
+        showToast(editingId ? '已保存' : '已添加');
       });
 
       // 点击遮罩关闭

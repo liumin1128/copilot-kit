@@ -4,6 +4,7 @@ import {
   PromptItem,
   STORAGE_KEY,
   DEFAULT_PROMPTS,
+  DEFAULT_PROMPT_IDS,
   CONFIG_KEY,
   StatusBarPosition,
   getPositionConfig,
@@ -33,6 +34,15 @@ export function activate(context: vscode.ExtensionContext) {
     },
   );
   context.subscriptions.push(sendPromptCommand);
+
+  // 注册智能聊天操作命令（无聊天标签→创建，有聊天标签→拆分）
+  const smartChatCommand = vscode.commands.registerCommand(
+    "copilotQuickPrompts.smartChatAction",
+    async () => {
+      await smartChatAction();
+    },
+  );
+  context.subscriptions.push(smartChatCommand);
 
   // 初始化状态栏
   const statusBarDisposables: vscode.Disposable[] = [];
@@ -88,7 +98,13 @@ function createStatusBarItems(
       btnPri,
     );
     statusBar.name = `快捷提示: ${item.label}`;
-    statusBar.text = `$(${item.icon})`;
+    if (item.displayMode === "text") {
+      statusBar.text = item.label;
+    } else if (item.displayMode === "both") {
+      statusBar.text = `$(${item.icon}) ${item.label}`;
+    } else {
+      statusBar.text = `$(${item.icon})`;
+    }
     statusBar.tooltip = new vscode.MarkdownString(
       `**${item.label}**  \n$(triangle-right) ${item.mode === "direct" ? "$(play) 直接执行" : "$(edit) 写入输入框"}  \n$(triangle-right) 点击触发`,
     );
@@ -100,6 +116,15 @@ function createStatusBarItems(
     statusBar.show();
     disposables.push(statusBar);
   });
+
+  // 智能聊天按钮（无聊天标签→创建，有→拆分）
+  const chatBtn = vscode.window.createStatusBarItem(alignment, btnPri);
+  chatBtn.name = "智能聊天";
+  chatBtn.text = "$(comment-discussion)";
+  chatBtn.tooltip = "创建聊天标签页 / 向右拆分编辑器";
+  chatBtn.command = "copilotQuickPrompts.smartChatAction";
+  chatBtn.show();
+  disposables.push(chatBtn);
 }
 
 /** 从全局存储加载提示词列表 */
@@ -107,7 +132,10 @@ function loadPrompts(storage: vscode.Memento): PromptItem[] {
   const saved = storage.get<string>(STORAGE_KEY);
   if (saved) {
     try {
-      return JSON.parse(saved) as PromptItem[];
+      const parsed = JSON.parse(saved) as PromptItem[];
+      return parsed
+        .filter(p => !DEFAULT_PROMPT_IDS.has(p.id))
+        .map(p => ({ ...p, displayMode: p.displayMode || "icon" }));
     } catch {
       // ignore
     }
@@ -139,6 +167,30 @@ async function sendToCopilotChat(
   } catch {
     await vscode.env.clipboard.writeText(promptText);
     vscode.window.showInformationMessage("提示词已复制到剪贴板");
+  }
+}
+
+/** 检测是否存在聊天编辑器标签页 */
+function hasChatTab(): boolean {
+  for (const group of vscode.window.tabGroups.all) {
+    for (const tab of group.tabs) {
+      if (
+        tab.label.includes("Chat") ||
+        tab.label.includes("Copilot")
+      ) {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
+/** 智能聊天操作：无聊天标签→创建，有→向右拆分 */
+async function smartChatAction(): Promise<void> {
+  if (hasChatTab()) {
+    await vscode.commands.executeCommand("workbench.action.splitEditorRight");
+  } else {
+    await vscode.commands.executeCommand("workbench.action.chat.newEditSession");
   }
 }
 
