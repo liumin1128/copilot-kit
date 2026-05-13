@@ -1,0 +1,67 @@
+{
+  "name": "copilot-quick-prompts",
+  "displayName": "Copilot Quick Prompts",
+  "description": "为Copilot聊天添加快捷提示词按钮，一键插入预设提示词",
+  "version": "0.1.0",
+  "publisher": "copilot-quick-prompts",
+  "engines": {
+    "vscode": "^1.93.0"
+  },
+  "categories": [
+    "Chat",
+    "Other"
+  ],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "main": "./dist/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "copilotQuickPrompts.sendPrompt",
+        "title": "发送快捷提示词到Copilot聊天"
+      },
+      {
+        "command": "copilotQuickPrompts.showQuickPick",
+        "title": "快捷提示词",
+        "icon": "$(rocket)"
+      }
+    ],
+    "menus": {
+      "view/title": [
+        {
+          "command": "copilotQuickPrompts.showQuickPick",
+          "when": "view == workbench.panel.chat || view == workbench.view.chat || view == github.copilot.chat",
+          "group": "navigation"
+        }
+      ]
+    },
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "copilot-quick-prompts",
+          "title": "快捷提示",
+          "icon": "$(rocket)"
+        }
+      ]
+    },
+    "views": {
+      "copilot-quick-prompts": [
+        {
+          "type": "webview",
+          "id": "copilotQuickPrompts.main",
+          "name": "快捷提示词"
+        }
+      ]
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./"
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.93.0",
+    "typescript": "^5.3.0"
+  }
+}
