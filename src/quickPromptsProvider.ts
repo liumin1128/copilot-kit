@@ -13,12 +13,10 @@ export const CONFIG_KEY = "copilotQuickPrompts.statusBarPosition";
  * 根据配置获取状态栏对齐方式和优先级
  * @returns alignment - 对齐方向
  * @returns basePriority - 分组在状态栏上的基准位置
- * @returns buttonsBeforeRocket - true=按钮在火箭左边/上边，false=火箭在按钮左边/上边
  */
 export function getPositionConfig(): {
   alignment: vscode.StatusBarAlignment;
   basePriority: number;
-  buttonsBeforeRocket: boolean;
 } {
   const position = vscode.workspace
     .getConfiguration()
@@ -26,13 +24,13 @@ export function getPositionConfig(): {
 
   switch (position) {
     case "leftLeft":
-      return { alignment: vscode.StatusBarAlignment.Left, basePriority: 200, buttonsBeforeRocket: true };
+      return { alignment: vscode.StatusBarAlignment.Left, basePriority: 200 };
     case "leftRight":
-      return { alignment: vscode.StatusBarAlignment.Left, basePriority: 50, buttonsBeforeRocket: false };
+      return { alignment: vscode.StatusBarAlignment.Left, basePriority: 50 };
     case "rightLeft":
-      return { alignment: vscode.StatusBarAlignment.Right, basePriority: 50, buttonsBeforeRocket: false };
+      return { alignment: vscode.StatusBarAlignment.Right, basePriority: 50 };
     case "rightRight":
-      return { alignment: vscode.StatusBarAlignment.Right, basePriority: 200, buttonsBeforeRocket: true };
+      return { alignment: vscode.StatusBarAlignment.Right, basePriority: 200 };
   }
 }
 
@@ -51,7 +49,12 @@ export const STORAGE_KEY = "copilotQuickPrompts.prompts";
 
 /** 预设默认提示词的 ID 列表，用于迁移时过滤掉旧数据中的默认项 */
 export const DEFAULT_PROMPT_IDS = new Set([
-  "review", "explain", "test", "optimize", "docs", "refactor",
+  "review",
+  "explain",
+  "test",
+  "optimize",
+  "docs",
+  "refactor",
 ]);
 
 /** 默认预设提示词列表（已清空，只保留用户新建的） */
@@ -81,13 +84,13 @@ export class QuickPromptsProvider implements vscode.WebviewViewProvider {
       try {
         const parsed = JSON.parse(saved) as PromptItem[];
         return parsed
-          .filter(p => !DEFAULT_PROMPT_IDS.has(p.id))
-          .map(p => ({ ...p, displayMode: p.displayMode || "icon" }));
+          .filter((p) => !DEFAULT_PROMPT_IDS.has(p.id))
+          .map((p) => ({ ...p, displayMode: p.displayMode || "icon" }));
       } catch {
         // ignore
       }
     }
-    return DEFAULT_PROMPTS.map((p) => ({ ...p }));
+    return DEFAULT_PROMPTS.slice();
   }
 
   /** 保存提示词到全局存储 */

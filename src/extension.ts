@@ -88,22 +88,10 @@ function createStatusBarItems(
   disposables.length = 0;
 
   const prompts = loadPrompts(context.globalState);
-  const { alignment, basePriority, buttonsBeforeRocket } = getPositionConfig();
-
-  // 根据 buttonsBeforeRocket 决定优先级：true=按钮更靠边，false=火箭更靠边
-  const rocketPri = buttonsBeforeRocket ? basePriority : basePriority + 1;
-  const btnPri = buttonsBeforeRocket ? basePriority + 1 : basePriority;
-
-  // 分组标签
-  const label = vscode.window.createStatusBarItem(alignment, rocketPri);
-  label.text = "$(rocket)";
-  label.name = "快捷提示";
-  label.tooltip = "Copilot 快捷提示词";
-  label.show();
-  disposables.push(label);
+  const { alignment, basePriority } = getPositionConfig();
 
   // 特殊按钮（放在自定义按钮左侧）
-  const chatBtn = vscode.window.createStatusBarItem(alignment, btnPri);
+  const chatBtn = vscode.window.createStatusBarItem(alignment, basePriority);
   chatBtn.name = "智能聊天";
   chatBtn.text = "$(comment-discussion)";
   chatBtn.tooltip = "创建聊天标签页 / 向右拆分编辑器";
@@ -111,7 +99,10 @@ function createStatusBarItems(
   chatBtn.show();
   disposables.push(chatBtn);
 
-  const closeAllBtn = vscode.window.createStatusBarItem(alignment, btnPri);
+  const closeAllBtn = vscode.window.createStatusBarItem(
+    alignment,
+    basePriority,
+  );
   closeAllBtn.name = "关闭所有";
   closeAllBtn.text = "$(close-all)";
   closeAllBtn.tooltip = "关闭所有标签页和 Copilot 侧边栏";
@@ -120,27 +111,41 @@ function createStatusBarItems(
   disposables.push(closeAllBtn);
 
   // 自定义按钮
-  prompts.forEach((item) => {
-    const statusBar = vscode.window.createStatusBarItem(alignment, btnPri);
-    statusBar.name = `快捷提示: ${item.label}`;
-    if (item.displayMode === "text") {
-      statusBar.text = item.label;
-    } else if (item.displayMode === "both") {
-      statusBar.text = `$(${item.icon}) ${item.label}`;
-    } else {
-      statusBar.text = `$(${item.icon})`;
-    }
-    statusBar.tooltip = new vscode.MarkdownString(
-      `**${item.label}**  \n$(triangle-right) ${item.mode === "direct" ? "$(play) 直接执行" : "$(edit) 写入输入框"}  \n$(triangle-right) 点击触发`,
-    );
-    statusBar.command = {
-      command: "copilotQuickPrompts.sendPrompt",
-      title: "发送提示词",
-      arguments: [item.prompt, item.mode],
-    };
-    statusBar.show();
+  for (const item of prompts) {
+    const statusBar = createPromptButton(item, alignment, basePriority);
     disposables.push(statusBar);
-  });
+  }
+}
+
+/** 创建单个提示词状态栏按钮 */
+function createPromptButton(
+  item: PromptItem,
+  alignment: vscode.StatusBarAlignment,
+  priority: number,
+): vscode.StatusBarItem {
+  const statusBar = vscode.window.createStatusBarItem(alignment, priority);
+  statusBar.name = `快捷提示: ${item.label}`;
+
+  if (item.displayMode === "text") {
+    statusBar.text = item.label;
+  } else if (item.displayMode === "both") {
+    statusBar.text = `$(${item.icon}) ${item.label}`;
+  } else {
+    statusBar.text = `$(${item.icon})`;
+  }
+
+  const modeLabel =
+    item.mode === "direct" ? "$(play) 直接执行" : "$(edit) 写入输入框";
+  statusBar.tooltip = new vscode.MarkdownString(
+    `**${item.label}**  \n$(triangle-right) ${modeLabel}  \n$(triangle-right) 点击触发`,
+  );
+  statusBar.command = {
+    command: "copilotQuickPrompts.sendPrompt",
+    title: "发送提示词",
+    arguments: [item.prompt, item.mode],
+  };
+  statusBar.show();
+  return statusBar;
 }
 
 /** 从全局存储加载提示词列表 */
@@ -156,7 +161,7 @@ function loadPrompts(storage: vscode.Memento): PromptItem[] {
       // ignore
     }
   }
-  return DEFAULT_PROMPTS.map((p) => ({ ...p }));
+  return DEFAULT_PROMPTS.slice();
 }
 
 /**
@@ -167,19 +172,18 @@ async function sendToCopilotChat(
   promptText: string,
   mode: "direct" | "write",
 ): Promise<void> {
+  if (mode === "direct") {
+    await vscode.commands.executeCommand("workbench.action.chat.open", {
+      query: promptText,
+    });
+    return;
+  }
+
   try {
-    if (mode === "direct") {
-      await vscode.commands.executeCommand("workbench.action.chat.open", {
-        query: promptText,
-      });
-    } else {
-      await vscode.env.clipboard.writeText(promptText);
-      await vscode.commands.executeCommand("workbench.action.chat.open");
-      await new Promise((r) => setTimeout(r, 100));
-      await vscode.commands.executeCommand(
-        "editor.action.clipboardPasteAction",
-      );
-    }
+    await vscode.env.clipboard.writeText(promptText);
+    await vscode.commands.executeCommand("workbench.action.chat.open");
+    await new Promise((r) => setTimeout(r, 100));
+    await vscode.commands.executeCommand("editor.action.clipboardPasteAction");
   } catch {
     await vscode.env.clipboard.writeText(promptText);
     vscode.window.showInformationMessage("提示词已复制到剪贴板");
@@ -188,12 +192,7 @@ async function sendToCopilotChat(
 
 /** 检测是否存在任何编辑器标签页 */
 function hasAnyTab(): boolean {
-  for (const group of vscode.window.tabGroups.all) {
-    if (group.tabs.length > 0) {
-      return true;
-    }
-  }
-  return false;
+  return vscode.window.tabGroups.all.some((group) => group.tabs.length > 0);
 }
 
 /** 智能聊天操作：无标签页→创建聊天编辑器标签页，有标签页→向右拆分 */
