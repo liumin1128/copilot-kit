@@ -44,6 +44,15 @@ export function activate(context: vscode.ExtensionContext) {
   );
   context.subscriptions.push(smartChatCommand);
 
+  // 注册关闭所有标签页命令
+  const closeAllCommand = vscode.commands.registerCommand(
+    "copilotQuickPrompts.closeAll",
+    async () => {
+      await closeAllTabs();
+    },
+  );
+  context.subscriptions.push(closeAllCommand);
+
   // 初始化状态栏
   const statusBarDisposables: vscode.Disposable[] = [];
   const rebuildStatusBar = () =>
@@ -123,6 +132,15 @@ function createStatusBarItems(
   chatBtn.command = "copilotQuickPrompts.smartChatAction";
   chatBtn.show();
   disposables.push(chatBtn);
+
+  // 关闭所有标签页按钮
+  const closeAllBtn = vscode.window.createStatusBarItem(alignment, btnPri);
+  closeAllBtn.name = "关闭所有";
+  closeAllBtn.text = "$(close-all)";
+  closeAllBtn.tooltip = "关闭所有标签页和 Copilot 侧边栏";
+  closeAllBtn.command = "copilotQuickPrompts.closeAll";
+  closeAllBtn.show();
+  disposables.push(closeAllBtn);
 }
 
 /** 从全局存储加载提示词列表 */
@@ -185,6 +203,12 @@ async function smartChatAction(): Promise<void> {
   } else {
     await vscode.commands.executeCommand("workbench.action.chat.openInEditor");
   }
+}
+
+/** 关闭所有标签页和 Copilot 侧边栏 */
+async function closeAllTabs(): Promise<void> {
+  await vscode.commands.executeCommand("workbench.action.closeAllEditors");
+  await vscode.commands.executeCommand("workbench.action.closeAuxiliaryBar");
 }
 
 export function deactivate() {}
