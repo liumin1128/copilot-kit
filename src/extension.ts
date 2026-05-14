@@ -205,16 +205,13 @@ function hasAnyTab(): boolean {
   return vscode.window.tabGroups.all.some((group) => group.tabs.length > 0);
 }
 
-/** Smart chat action: no tab → create chat editor tab, has tab → split right, then auto-layout */
+/** Smart chat action: no tab → create chat editor tab, has tab → split right */
 async function smartChatAction(): Promise<void> {
   if (hasAnyTab()) {
     await vscode.commands.executeCommand("workbench.action.splitEditorRight");
   } else {
     await vscode.commands.executeCommand("workbench.action.chat.openInEditor");
   }
-
-  // Auto-distribute groups evenly after adding a new window
-  await vscode.commands.executeCommand("workbench.action.evenEditorWidths");
 }
 
 /** Close all tabs and Copilot sidebar */
