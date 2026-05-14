@@ -63,6 +63,16 @@ export const BUILT_IN_PROMPTS: PromptItem[] = [
     builtIn: true,
   },
   {
+    id: "builtin:layoutChat",
+    icon: "editor-layout",
+    label: "Layout Tabs",
+    prompt: "",
+    color: "#81c784",
+    mode: "direct",
+    displayMode: "icon",
+    builtIn: true,
+  },
+  {
     id: "builtin:closeAll",
     icon: "close-all",
     label: "Close All Tabs",
@@ -879,6 +889,7 @@ export class QuickPromptsProvider implements vscode.WebviewViewProvider {
       // ---- Built-in command mapping ----
       const BUILT_IN_COMMANDS = {
         'builtin:smartChat': 'copilotKit.smartChatAction',
+        'builtin:layoutChat': 'copilotKit.layoutChatTabs',
         'builtin:closeAll': 'copilotKit.closeAll',
       };
 

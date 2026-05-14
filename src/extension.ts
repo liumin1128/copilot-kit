@@ -46,6 +46,15 @@ export function activate(context: vscode.ExtensionContext) {
   );
   context.subscriptions.push(closeAllCommand);
 
+  // Register layout chat tabs command
+  const layoutChatCommand = vscode.commands.registerCommand(
+    "copilotKit.layoutChatTabs",
+    async () => {
+      await layoutChatTabs();
+    },
+  );
+  context.subscriptions.push(layoutChatCommand);
+
   // Initialize status bar
   const statusBarDisposables: vscode.Disposable[] = [];
   const rebuildStatusBar = () =>
@@ -97,6 +106,7 @@ function createStatusBarItems(
 /** Built-in item → command ID mapping */
 function getBuiltInCommand(item: PromptItem): string | undefined {
   if (item.id === "builtin:smartChat") return "copilotKit.smartChatAction";
+  if (item.id === "builtin:layoutChat") return "copilotKit.layoutChatTabs";
   if (item.id === "builtin:closeAll") return "copilotKit.closeAll";
   return undefined;
 }
@@ -208,6 +218,22 @@ async function smartChatAction(): Promise<void> {
 async function closeAllTabs(): Promise<void> {
   await vscode.commands.executeCommand("workbench.action.closeAllEditors");
   await vscode.commands.executeCommand("workbench.action.closeAuxiliaryBar");
+}
+
+/**
+ * Evenly distribute all editor groups to equal sizes
+ *
+ * Uses VS Code's built-in evenEditorWidths command which reliably
+ * distributes all editor groups to equal proportions.
+ */
+async function layoutChatTabs(): Promise<void> {
+  const groups = vscode.window.tabGroups.all;
+  if (groups.length <= 1) {
+    vscode.window.showInformationMessage("No editor groups to layout");
+    return;
+  }
+
+  await vscode.commands.executeCommand("workbench.action.evenEditorWidths");
 }
 
 export function deactivate() {}
