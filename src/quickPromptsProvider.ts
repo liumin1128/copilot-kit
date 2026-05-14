@@ -64,7 +64,7 @@ export const BUILT_IN_PROMPTS: PromptItem[] = [
   },
   {
     id: "builtin:layoutChat",
-    icon: "editor-layout",
+    icon: "split-horizontal",
     label: "Layout Tabs",
     prompt: "",
     color: "#81c784",
